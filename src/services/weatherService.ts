@@ -113,9 +113,25 @@ export const parseWeatherResponse = (data: any): Weather => {
 };
 
 const calculateFeelsLike = (tempC: number, humidity: number, windKmph: number): string => {
-  const windChill = 13.12 + 0.6215 * tempC - 11.37 * Math.pow(windKmph, 0.16) + 0.3965 * tempC * Math.pow(windKmph, 0.16);
-  const feelsLike = (windChill + tempC) / 2;
-  return feelsLike.toFixed(1);
+  // Wind Chill formula (for temps < 10°C, needs wind)
+  if (tempC < 10 && windKmph > 4.8) {
+    const windChill = 13.12 + 0.6215 * tempC - 11.37 * Math.pow(windKmph, 0.16) + 0.3965 * tempC * Math.pow(windKmph, 0.16);
+    return windChill.toFixed(0);
+  }
+
+  // Heat Index formula (for temps >= 10°C with moderate-high humidity)
+  if (tempC >= 10) {
+    if (humidity >= 40) {
+      // Simplified heat index approximation
+      const exponent = (17.62 * tempC) / (tempC + 243.12);
+      const vapPressure = 6.112 * Math.exp(exponent);
+      const heatIndex = tempC + 0.5555 * ((humidity / 100) * vapPressure - 10);
+      return heatIndex.toFixed(0);
+    }
+    return tempC.toFixed(0); // No adjustment for low humidity
+  }
+
+  return tempC.toFixed(0);
 };
 
 const WEATHER_TRANSLATIONS: { [key: string]: string } = {

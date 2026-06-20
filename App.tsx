@@ -8,11 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   StatusBar,
-  AsyncStorage,
   Modal,
   Alert,
   RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 interface Weather {
@@ -122,6 +122,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [showAQIModal, setShowAQIModal] = useState(false);
+  const [showForecastModal, setShowForecastModal] = useState(false);
   const [cachedWeather, setCachedWeather] = useState<Weather | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -455,14 +456,33 @@ export default function App() {
   };
 
   const generateWeatherChange = (weather: Weather): { tempChange: string; windChange: string; rainChange: string } => {
-    const tempC = weather.tempC || 21;
-    const windKmph = weather.windKmph || 8;
-    const desc = weather.description.toLowerCase();
-    const hasRain = desc.includes('deszcz') || desc.includes('rain');
+    // Get tomorrow's forecast from API data
+    const tomorrowForecast = weather.forecast?.[0];
 
-    const tempChange = tempC > 20 ? `+${Math.round(tempC - 18)}°C cieplej` : `${Math.round(tempC - 18)}°C chłodniej`;
-    const windChange = windKmph > 10 ? `+${Math.round(windKmph - 8)} km/h więcej wiatru` : `${Math.round(windKmph - 8)} km/h mniej wiatru`;
-    const rainChange = hasRain ? 'większe opady' : 'bez opadów';
+    let tempChange = 'Brak prognozy';
+    let rainChange = 'brak danych';
+
+    if (tomorrowForecast) {
+      // Parse real temperatures from forecast
+      const todayTempC = weather.tempC || 0;
+      const tomorrowMaxTempC = parseInt(tomorrowForecast.maxTemp.replace(/[^0-9-]/g, '')) || 0;
+
+      const diff = tomorrowMaxTempC - todayTempC;
+      if (diff > 0) {
+        tempChange = `+${diff}°C cieplej`;
+      } else if (diff < 0) {
+        tempChange = `${diff}°C chłodniej`;
+      } else {
+        tempChange = 'bez zmian';
+      }
+
+      // Check tomorrow's rain conditions
+      const tomorrowDesc = tomorrowForecast.description.toLowerCase();
+      rainChange = tomorrowDesc.includes('deszcz') || tomorrowDesc.includes('rain') ? 'opady' : 'bez opadów';
+    }
+
+    const windKmph = weather.windKmph || 0;
+    const windChange = windKmph > 10 ? `+${windKmph} km/h` : `${windKmph} km/h`;
 
     return { tempChange, windChange, rainChange };
   };
@@ -492,12 +512,24 @@ export default function App() {
 
       <View style={styles.header}>
         <Text style={styles.title}>⛅ Pogoda</Text>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setShowSearch(!showSearch)}
-        >
-          <Text style={styles.menuButtonText}>≡</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => {
+              if (weather) {
+                setShowForecastModal(true);
+              }
+            }}
+          >
+            <Text style={styles.menuButtonText}>📅</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setShowSearch(!showSearch)}
+          >
+            <Text style={styles.menuButtonText}>≡</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {showSearch && (
@@ -528,6 +560,7 @@ export default function App() {
 
       <ScrollView
         style={styles.content}
+        scrollEnabled={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -560,6 +593,65 @@ export default function App() {
           <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />
         ) : weather ? (
           <>
+            {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
+            <View style={styles.dashboardBox}>
+              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#333' }}>
+                📊 Dashboard
+              </Text>
+
+              {/* Temperatura + Odczuwalna */}
+              <View style={styles.dashboardTempSection}>
+                <View style={styles.dashboardTempBox}>
+                  <Text style={styles.dashboardLabel}>Temperatura</Text>
+                  <Text style={styles.dashboardBigTemp}>{weather.temp}</Text>
+                </View>
+                <View style={styles.dashboardTempBox}>
+                  <Text style={styles.dashboardLabel}>Odczuwalna</Text>
+                  <Text style={styles.dashboardBigTemp} numberOfLines={1}>{weather.feelsLike}</Text>
+                </View>
+              </View>
+
+              {/* Opady + Wiatr + AQI */}
+              <View style={styles.dashboardGrid}>
+                <View style={styles.dashboardItem}>
+                  <Text style={styles.dashboardLabel}>☔ Opady</Text>
+                  <Text style={styles.dashboardValue}>{generateWeatherChange(weather).rainChange}</Text>
+                </View>
+                <View style={styles.dashboardItem}>
+                  <Text style={styles.dashboardLabel}>💨 Wiatr</Text>
+                  <Text style={styles.dashboardValue} numberOfLines={1}>{weather.windSpeed}</Text>
+                </View>
+                <View style={styles.dashboardItem}>
+                  <Text style={styles.dashboardLabel}>💧 Wilgotność</Text>
+                  <Text style={styles.dashboardValue}>{weather.humidity}</Text>
+                </View>
+                <View style={styles.dashboardItem}>
+                  <Text style={styles.dashboardLabel}>{weather.aqiEmoji} Jakość powietrza</Text>
+                  <Text style={[styles.dashboardValue, { color: weather.aqiColor }]}>
+                    {weather.aqi}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Komfort Dnia + Zmiana */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff9e6', borderRadius: 8 }}>
+                  <Text style={styles.dashboardLabel}>🎯 Komfort</Text>
+                  <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 28 }]}>
+                    {calculateWeatherScore(weather)}/100
+                  </Text>
+                </View>
+                <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
+                  <Text style={styles.dashboardLabel}>📈 Jutro</Text>
+                  <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 16 }]}>
+                    {generateWeatherChange(weather).tempChange}
+                  </Text>
+                </View>
+              </View>
+
+            </View>
+
+            {/* SZCZEGÓŁY + LOKACJA */}
             <View style={styles.weatherBox}>
               <View style={styles.locationHeader}>
                 <View style={{ flex: 1 }}>
@@ -593,80 +685,9 @@ export default function App() {
               <View style={styles.iconTempRow}>
                 <Text style={styles.bigIcon}>{weather.icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.temp}>{weather.temp}</Text>
                   <Text style={styles.description}>{weather.description}</Text>
                   <Text style={styles.insight}>{generateWeatherInsight(weather)}</Text>
                 </View>
-              </View>
-
-              {/* FEATURE 1: Zmiana Pogody */}
-              <View style={styles.changeCard}>
-                <Text style={styles.changeTitle}>📈 Jutro vs Dzisiaj</Text>
-                <View style={styles.changeRow}>
-                  <Text style={styles.changeText}>🌡️ {generateWeatherChange(weather).tempChange}</Text>
-                  <Text style={styles.changeText}>💨 {generateWeatherChange(weather).windChange}</Text>
-                </View>
-                <Text style={styles.changeText}>☔ {generateWeatherChange(weather).rainChange}</Text>
-              </View>
-
-              {/* FEATURE 3: Godziny Opadów */}
-              <View style={styles.hourlyCard}>
-                <Text style={styles.hourlyTitle}>⏰ Następne 6 godzin</Text>
-                <View style={styles.hourlyGrid}>
-                  {generateHourlyRain().map((item, idx) => (
-                    <View key={idx} style={styles.hourlyItem}>
-                      <Text style={styles.hourlyHour}>{item.hour}</Text>
-                      <Text style={styles.hourlyEmoji}>{item.emoji}</Text>
-                      {item.percent > 0 && <Text style={styles.hourlyPercent}>{item.percent}%</Text>}
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* FEATURE 4: Widget Card - Najważniejsze teraz */}
-              <View style={styles.widgetCard}>
-                <Text style={styles.widgetTitle}>🎯 Najważniejsze teraz</Text>
-                <View style={styles.widgetRow}>
-                  <View style={styles.widgetItem}>
-                    <Text style={styles.widgetLabel}>🌡️</Text>
-                    <Text style={styles.widgetValue}>{weather.temp}</Text>
-                  </View>
-                  <View style={styles.widgetItem}>
-                    <Text style={styles.widgetLabel}>💨</Text>
-                    <Text style={styles.widgetValue}>{weather.windSpeed}</Text>
-                  </View>
-                  <View style={styles.widgetItem}>
-                    <Text style={styles.widgetLabel}>{weather.aqiEmoji}</Text>
-                    <Text style={styles.widgetValue}>{weather.aqi}</Text>
-                  </View>
-                  <View style={styles.widgetItem}>
-                    <Text style={styles.widgetLabel}>☔</Text>
-                    <Text style={styles.widgetValue}>Brak</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* FEATURE 5: Weather Score - Komfort Dnia */}
-              {(() => {
-                const score = calculateWeatherScore(weather);
-                const scoreText = score >= 80 ? '✅ Doskonały dzień' :
-                                 score >= 60 ? '☀️ Dobry dzień' :
-                                 score >= 40 ? '⚠️ Przeciętny dzień' : '❌ Zły dzień';
-                return (
-                  <View style={styles.scoreCard}>
-                    <Text style={styles.scoreLabel}>📊 Komfort Dnia</Text>
-                    <Text style={styles.scoreValue}>{score}/100</Text>
-                    <Text style={styles.scoreText}>{scoreText}</Text>
-                  </View>
-                );
-              })()}
-
-              {/* FEATURE 2: Komfort Człowieka */}
-              <View style={styles.comfortCard}>
-                <Text style={styles.comfortTitle}>✨ Komfort</Text>
-                {generateComfortRecommendations(weather).map((rec, idx) => (
-                  <Text key={idx} style={styles.comfortText}>{rec}</Text>
-                ))}
               </View>
 
               <View style={styles.details}>
@@ -682,6 +703,14 @@ export default function App() {
                   <Text style={styles.detailLabel}>Wiatr</Text>
                   <Text style={styles.detailValue}>{weather.windSpeed}</Text>
                 </View>
+              </View>
+
+              {/* Rekomendacje */}
+              <View style={styles.comfortCard}>
+                <Text style={styles.comfortTitle}>💡 Czy wyjść?</Text>
+                {generateComfortRecommendations(weather).map((rec, idx) => (
+                  <Text key={idx} style={styles.comfortText}>{rec}</Text>
+                ))}
               </View>
 
               {/* Szczegóły pogody */}
@@ -733,28 +762,54 @@ export default function App() {
               </View>
             </View>
 
-            <Text style={styles.forecastTitle}>📅 Prognoza na 3 dni</Text>
-            {weather.forecast.map((day, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.forecastCard}
-                onPress={() => setSelectedDay(day)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.forecastHeader}>
-                  <Text style={styles.forecastDate}>{day.date}</Text>
-                  <Text style={styles.forecastIcon}>{day.icon}</Text>
-                </View>
-                <Text style={styles.forecastDesc}>{translateWeather(day.description)}</Text>
-                <View style={styles.forecastTemp}>
-                  <Text style={styles.forecastMax}>Maks: {day.maxTemp}</Text>
-                  <Text style={styles.forecastMin}>Min: {day.minTemp}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
           </>
         ) : null}
       </ScrollView>
+
+
+      {/* Forecast Modal - 3 days selection */}
+      <Modal
+        visible={showForecastModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowForecastModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowForecastModal(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Prognoza</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {weather && (
+            <ScrollView style={styles.modalContent}>
+              {weather.forecast.map((day, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.forecastCard}
+                  onPress={() => {
+                    setSelectedDay(day);
+                    setShowForecastModal(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.forecastHeader}>
+                    <Text style={styles.forecastDate}>{day.date}</Text>
+                    <Text style={styles.forecastIcon}>{day.icon}</Text>
+                  </View>
+                  <Text style={styles.forecastDesc}>{translateWeather(day.description)}</Text>
+                  <View style={styles.forecastTemp}>
+                    <Text style={styles.forecastMax}>Maks: {day.maxTemp}</Text>
+                    <Text style={styles.forecastMin}>Min: {day.minTemp}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
 
       {/* AQI Details Modal */}
       <Modal
@@ -842,6 +897,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    flexDirection: 'column',
   },
   header: {
     backgroundColor: '#1e90ff',
@@ -866,7 +922,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    flex: 1,
     padding: 24, // Increased for better tall-screen utilization (Motorola)
     paddingBottom: 40,
   },
@@ -933,6 +988,68 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginVertical: 40,
+  },
+  dashboardBox: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dashboardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  dashboardItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  dashboardLargeItem: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dashboardLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  dashboardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  dashboardTempSection: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  dashboardTempBox: {
+    alignItems: 'center',
+  },
+  dashboardBigTemp: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#1e90ff',
+  },
+  dashboardFeelsLike: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 4,
   },
   weatherBox: {
     backgroundColor: '#fff',

@@ -29,7 +29,7 @@ export const useWeather = () => {
       setWeather(fullWeatherData);
       await cacheWeather(fullWeatherData);
     } catch (err) {
-      const cachedData = await getCachedWeather();
+      const cachedData = await getCachedWeather() as Weather | null;
       if (cachedData) {
         setWeather(cachedData);
         setError('📡 Bez internetu - pokazuję ostatnie dane');
@@ -44,7 +44,7 @@ export const useWeather = () => {
 
   const loadCachedWeather = useCallback(async () => {
     try {
-      const cached = await getCachedWeather();
+      const cached = await getCachedWeather() as Weather | null;
       if (cached) {
         setWeather(cached);
       }

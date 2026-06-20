@@ -27,13 +27,13 @@ export const fetchAQIData = async (latitude: number, longitude: number): Promise
         { timeout: TIMEOUT }
       ),
       new Promise((_, reject) => setTimeout(() => reject(new Error('AQI timeout')), TIMEOUT)),
-    ]);
+    ]) as any;
 
     if (!response?.data?.current) {
       return defaultAQI;
     }
 
-    const aqiData = response.data.current;
+    const aqiData = response.data.current as any;
 
     // Validate each field
     const hasPM25 = aqiData.pm2_5 !== null && aqiData.pm2_5 !== undefined && typeof aqiData.pm2_5 === 'number';

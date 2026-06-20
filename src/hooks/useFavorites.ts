@@ -11,7 +11,7 @@ export const useFavorites = () => {
 
   const loadFavorites = useCallback(async () => {
     try {
-      const cached = await getCachedFavorites();
+      const cached = await getCachedFavorites() as string[] | null;
       if (cached) {
         setFavorites(cached);
       }
