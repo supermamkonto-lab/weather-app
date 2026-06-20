@@ -768,26 +768,12 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Czy wyjść - decyzja */}
-              {(() => {
-                const decision = generateGoOutDecision(weather);
-                return (
-                  <View style={[styles.comfortCard, { borderLeftWidth: 4, borderLeftColor: decision.color }]}>
-                    <Text style={styles.comfortTitle}>💡 Czy wyjść?</Text>
-                    <Text style={{ fontSize: 20, fontWeight: '700', color: decision.color, marginBottom: 4 }}>
-                      {decision.emoji} {decision.verdict}
-                    </Text>
-                    <Text style={{ fontSize: 14, color: '#555', lineHeight: 20 }}>{decision.reason}</Text>
-                  </View>
-                );
-              })()}
-
               {/* Szczegóły pogody */}
               <Text style={styles.detailsTitle}>📊 Szczegóły</Text>
               <View style={styles.detailsGrid}>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>Ciśnienie</Text>
-                  <Text style={styles.detailGridValue}>{weather.pressure}</Text>
+                  <Text style={styles.detailGridValue}>{weather.pressure.replace(' mb', ' hPa')}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>Widoczność</Text>
@@ -797,14 +783,6 @@ export default function App() {
                   <Text style={styles.detailGridLabel}>Indeks UV</Text>
                   <Text style={styles.detailGridValue}>{weather.uvIndex}</Text>
                 </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>🌅 Wschód</Text>
-                  <Text style={styles.detailGridValue}>{weather.sunrise}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Zachód</Text>
-                  <Text style={styles.detailGridValue}>{weather.sunset}</Text>
-                </View>
                 <View style={[styles.detailGridItem, { backgroundColor: '#fff3cd' }]}>
                   <Text style={styles.detailGridLabel}>☀️ Długość dnia</Text>
                   <Text style={[styles.detailGridValue, { color: '#ff9800' }]}>
@@ -812,11 +790,41 @@ export default function App() {
                   </Text>
                 </View>
                 <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>PM2.5</Text>
+                  <Text style={styles.detailGridLabel}>🌅 Wschód słońca</Text>
+                  <Text style={styles.detailGridValue}>{(() => {
+                    const t = weather.sunrise;
+                    if (!t || t === 'N/A') return 'N/A';
+                    const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    if (!match) return t;
+                    let h = parseInt(match[1]);
+                    const m = match[2];
+                    const ampm = match[3].toUpperCase();
+                    if (ampm === 'PM' && h !== 12) h += 12;
+                    if (ampm === 'AM' && h === 12) h = 0;
+                    return `${h.toString().padStart(2,'0')}:${m}`;
+                  })()}</Text>
+                </View>
+                <View style={styles.detailGridItem}>
+                  <Text style={styles.detailGridLabel}>🌇 Zachód słońca</Text>
+                  <Text style={styles.detailGridValue}>{(() => {
+                    const t = weather.sunset;
+                    if (!t || t === 'N/A') return 'N/A';
+                    const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    if (!match) return t;
+                    let h = parseInt(match[1]);
+                    const m = match[2];
+                    const ampm = match[3].toUpperCase();
+                    if (ampm === 'PM' && h !== 12) h += 12;
+                    if (ampm === 'AM' && h === 12) h = 0;
+                    return `${h.toString().padStart(2,'0')}:${m}`;
+                  })()}</Text>
+                </View>
+                <View style={styles.detailGridItem}>
+                  <Text style={styles.detailGridLabel}>PM2.5 — pyły drobne</Text>
                   <Text style={styles.detailGridValue}>{weather.pm25}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>PM10</Text>
+                  <Text style={styles.detailGridLabel}>PM10 — pyły zawieszone</Text>
                   <Text style={styles.detailGridValue}>{weather.pm10}</Text>
                 </View>
                 <TouchableOpacity
