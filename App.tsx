@@ -399,31 +399,44 @@ export default function App() {
     return insight;
   };
 
-  const generateComfortRecommendations = (weather: Weather): string[] => {
-    const recommendations: string[] = [];
+  const generateGoOutDecision = (weather: Weather): { verdict: string; reason: string; emoji: string; color: string } => {
     const temp = parseInt(weather.temp);
     const humidity = parseInt(weather.humidity);
     const uv = parseInt(weather.uvIndex);
+    const wind = parseInt(weather.windSpeed);
     const desc = weather.description.toLowerCase();
     const hasRain = desc.includes('deszcz') || desc.includes('rain');
+    const hasStorm = desc.includes('burza') || desc.includes('storm') || desc.includes('thunder') || desc.includes('wyładowania');
+    const aqi = weather.aqi.toLowerCase();
+    const badAir = aqi.includes('zła') || aqi.includes('niebezp') || aqi.includes('wrażliw');
 
-    if (temp > 15 && temp < 25 && !hasRain && humidity < 80) {
-      recommendations.push('✅ Dobry dzień na spacer');
+    // BLOCKERS - hard NO
+    if (hasStorm) return { verdict: 'NIE WYCHÓDŹ', reason: 'Burza — niebezpieczne warunki', emoji: '⛈️', color: '#c62828' };
+    if (badAir) return { verdict: 'UNIKAJ WYJŚĆ', reason: 'Złe powietrze — szczególnie dla alergików', emoji: '😷', color: '#e65100' };
+    if (wind > 50) return { verdict: 'UNIKAJ WYJŚĆ', reason: 'Silny wiatr powyżej 50 km/h', emoji: '🌬️', color: '#e65100' };
+
+    // GREAT day
+    if (temp >= 18 && temp <= 26 && !hasRain && humidity < 70 && uv <= 6) {
+      return { verdict: 'WYJDŹ!', reason: 'Idealne warunki — przyjemna temperatura, brak opadów', emoji: '✅', color: '#2e7d32' };
     }
-    if (uv > 6) {
-      recommendations.push('⚠️ Wysoki UV - użyj filtru');
+
+    // GOOD but with caveats
+    if (!hasRain && temp >= 10 && humidity < 80) {
+      const caveat = uv > 6 ? ' Użyj filtr UV.' : temp > 26 ? ' Dużo wody.' : temp < 15 ? ' Weź kurtkę.' : '';
+      return { verdict: 'MOŻNA WYJŚĆ', reason: `Akceptowalne warunki.${caveat}`, emoji: '🟡', color: '#f57f17' };
     }
+
+    // RAIN
     if (hasRain) {
-      recommendations.push('⚠️ Zabierz parasol');
-    }
-    if (humidity > 75) {
-      recommendations.push('⚠️ Wysoka wilgotność - mogą być alergeny');
-    }
-    if (temp < 10) {
-      recommendations.push('⚠️ Zimno - weź kurtkę');
+      return { verdict: 'ZABIERZ PARASOL', reason: 'Opady — krótki wyjście możliwy', emoji: '☂️', color: '#1565c0' };
     }
 
-    return recommendations.length > 0 ? recommendations : ['✅ Warunki neutralne'];
+    // COLD
+    if (temp < 5) {
+      return { verdict: 'UBIERZ SIĘ CIEPŁO', reason: `Zimno ${temp}°C — kurtka i rękawiczki`, emoji: '🧥', color: '#4527a0' };
+    }
+
+    return { verdict: 'WARUNKI OK', reason: 'Brak wyraźnych przeciwwskazań', emoji: '🟢', color: '#2e7d32' };
   };
 
   const calculateWeatherScore = (weather: Weather): number => {
@@ -615,7 +628,15 @@ export default function App() {
               <View style={styles.dashboardGrid}>
                 <View style={styles.dashboardItem}>
                   <Text style={styles.dashboardLabel}>☔ Opady</Text>
-                  <Text style={styles.dashboardValue}>{generateWeatherChange(weather).rainChange}</Text>
+                  <Text style={styles.dashboardValue}>
+                    {(() => {
+                      const desc = weather.description.toLowerCase();
+                      if (desc.includes('deszcz') || desc.includes('rain')) return 'tak';
+                      if (desc.includes('burza') || desc.includes('storm') || desc.includes('thunder')) return 'możliwe';
+                      if (desc.includes('śnieg') || desc.includes('snow')) return 'śnieg';
+                      return 'brak';
+                    })()}
+                  </Text>
                 </View>
                 <View style={styles.dashboardItem}>
                   <Text style={styles.dashboardLabel}>💨 Wiatr</Text>
@@ -633,21 +654,35 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Komfort Dnia + Zmiana */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
-                <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff9e6', borderRadius: 8 }}>
-                  <Text style={styles.dashboardLabel}>🎯 Komfort</Text>
-                  <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 28 }]}>
-                    {calculateWeatherScore(weather)}/100
-                  </Text>
-                </View>
-                <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
-                  <Text style={styles.dashboardLabel}>📈 Jutro</Text>
-                  <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 16 }]}>
-                    {generateWeatherChange(weather).tempChange}
-                  </Text>
-                </View>
-              </View>
+              {/* Komfort + Jutro + Czy wyjść */}
+              {(() => {
+                const decision = generateGoOutDecision(weather);
+                const score = calculateWeatherScore(weather);
+                return (
+                  <>
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                      <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff9e6', borderRadius: 8 }}>
+                        <Text style={styles.dashboardLabel}>🎯 Komfort</Text>
+                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 24 }]}>
+                          {score}/100
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
+                        <Text style={styles.dashboardLabel}>📈 Jutro</Text>
+                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>
+                          {generateWeatherChange(weather).tempChange}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ backgroundColor: decision.color + '18', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: decision.color, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: decision.color }}>
+                        {decision.emoji} {decision.verdict}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{decision.reason}</Text>
+                    </View>
+                  </>
+                );
+              })()}
 
             </View>
 
@@ -655,7 +690,19 @@ export default function App() {
             <View style={styles.weatherBox}>
               <View style={styles.locationHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.location}>{weather.location}</Text>
+                  <Text style={styles.location}>{weather.location
+                    .replace(', Poland', ', Polska')
+                    .replace(', Germany', ', Niemcy')
+                    .replace(', Czech Republic', ', Czechy')
+                    .replace(', France', ', Francja')
+                    .replace(', Slovakia', ', Słowacja')
+                    .replace(', Ukraine', ', Ukraina')
+                    .replace(', Austria', ', Austria')
+                    .replace(', Hungary', ', Węgry')
+                    .replace(', United Kingdom', ', W. Brytania')
+                    .replace(', Italy', ', Włochy')
+                    .replace(', Spain', ', Hiszpania')
+                  }</Text>
                   <Text style={styles.dateTime}>
                     {currentTime.toLocaleDateString('pl-PL')}
                   </Text>
@@ -685,7 +732,23 @@ export default function App() {
               <View style={styles.iconTempRow}>
                 <Text style={styles.bigIcon}>{weather.icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.description}>{weather.description}</Text>
+                  <Text style={styles.description}>{(() => {
+                    const APP_TRANSLATIONS: {[key: string]: string} = {
+                      'patchy light rain in area with thunder': 'Przerywany deszcz z burzą',
+                      'thundery outbreaks in nearby': 'Wyładowania burzowe w okolicy',
+                      'moderate or heavy rain with thunder': 'Silny deszcz z burzą',
+                      'blizzard': 'Zamieć śnieżna',
+                      'moderate snow': 'Umiarkowany śnieg',
+                      'ice pellets': 'Grad',
+                      'light sleet': 'Lekki śnieg z deszczem',
+                      'moderate or heavy sleet': 'Śnieg z deszczem',
+                      'freezing fog': 'Marznąca mgła',
+                      'haze': 'Zamglenie',
+                      'blowing snow': 'Wiejący śnieg',
+                    };
+                    const lower = weather.description.toLowerCase();
+                    return APP_TRANSLATIONS[lower] || weather.description;
+                  })()}</Text>
                   <Text style={styles.insight}>{generateWeatherInsight(weather)}</Text>
                 </View>
               </View>
@@ -705,13 +768,19 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Rekomendacje */}
-              <View style={styles.comfortCard}>
-                <Text style={styles.comfortTitle}>💡 Czy wyjść?</Text>
-                {generateComfortRecommendations(weather).map((rec, idx) => (
-                  <Text key={idx} style={styles.comfortText}>{rec}</Text>
-                ))}
-              </View>
+              {/* Czy wyjść - decyzja */}
+              {(() => {
+                const decision = generateGoOutDecision(weather);
+                return (
+                  <View style={[styles.comfortCard, { borderLeftWidth: 4, borderLeftColor: decision.color }]}>
+                    <Text style={styles.comfortTitle}>💡 Czy wyjść?</Text>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: decision.color, marginBottom: 4 }}>
+                      {decision.emoji} {decision.verdict}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#555', lineHeight: 20 }}>{decision.reason}</Text>
+                  </View>
+                );
+              })()}
 
               {/* Szczegóły pogody */}
               <Text style={styles.detailsTitle}>📊 Szczegóły</Text>

@@ -88,7 +88,7 @@ export const parseWeatherResponse = (data: any): Weather => {
   return {
     temp: `${tempC}°C`,
     description: translateWeather(current.weatherDesc[0].value),
-    location: `${location.areaName[0].value}, ${location.country[0].value}`,
+    location: `${location.areaName[0].value}, ${translateCountry(location.country[0].value)}`,
     feelsLike: `${feelsLikeTemp}°C`,
     humidity: `${humidity}%`,
     windSpeed: `${windKmph} km/h`,
@@ -142,16 +142,47 @@ const WEATHER_TRANSLATIONS: { [key: string]: string } = {
   'overcast': 'Całkowicie pochmurnie',
   'light rain': 'Lekki deszcz',
   'patchy light rain': 'Przerywany lekki deszcz',
+  'patchy light rain in area with thunder': 'Przerywany deszcz z burzą',
   'moderate rain': 'Umiarkowany deszcz',
+  'moderate or heavy rain with thunder': 'Silny deszcz z burzą',
   'heavy rain': 'Intensywny deszcz',
   'patchy rain nearby': 'Przerywany deszcz w pobliżu',
   'thundery outbreaks possible': 'Możliwe wyładowania burzowe',
+  'thundery outbreaks in nearby': 'Wyładowania burzowe w okolicy',
+  'thunderstorm': 'Burza',
+  'blizzard': 'Zamieć śnieżna',
   'patchy light snow': 'Przerywany lekki śnieg',
   'light snow': 'Lekki śnieg',
+  'moderate snow': 'Umiarkowany śnieg',
   'heavy snow': 'Intensywny śnieg',
+  'ice pellets': 'Grad',
+  'light sleet': 'Lekki śnieg z deszczem',
+  'moderate or heavy sleet': 'Śnieg z deszczem',
   'fog': 'Mgła',
+  'freezing fog': 'Marznąca mgła',
   'mist': 'Mgła',
+  'haze': 'Zamglenie',
   'windy': 'Wietrzny',
+  'blowing snow': 'Wiejący śnieg',
+};
+
+const COUNTRY_TRANSLATIONS: { [key: string]: string } = {
+  'poland': 'Polska',
+  'germany': 'Niemcy',
+  'france': 'Francja',
+  'czech republic': 'Czechy',
+  'austria': 'Austria',
+  'slovakia': 'Słowacja',
+  'ukraine': 'Ukraina',
+  'united kingdom': 'Wielka Brytania',
+  'italy': 'Włochy',
+  'spain': 'Hiszpania',
+  'united states': 'Stany Zjednoczone',
+  'hungary': 'Węgry',
+};
+
+const translateCountry = (country: string): string => {
+  return COUNTRY_TRANSLATIONS[country.toLowerCase()] || country;
 };
 
 const translateWeather = (desc: string): string => {
