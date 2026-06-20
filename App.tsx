@@ -201,9 +201,13 @@ export default function App() {
       let aqiEmoji = '⚪';
 
       try {
-        const aqiResponse = await axios.get(
-          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi`
-        );
+        // Non-blocking AQI fetch - timeout 2 sec
+        const aqiResponse = await Promise.race([
+          axios.get(
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi`
+          ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('AQI timeout')), 2000))
+        ]);
 
         if (aqiResponse && aqiResponse.data && aqiResponse.data.current) {
           const aqiData = aqiResponse.data.current;
@@ -435,11 +439,14 @@ export default function App() {
 
   const generateHourlyRain = (): Array<{ hour: string; emoji: string; percent: number }> => {
     const hours = [];
-    const basePercent = Math.random() > 0.6 ? 70 : 0;
+    const desc = weather?.description || '';
+    const isRainyWeather = desc.toLowerCase().includes('rain') || desc.toLowerCase().includes('storm');
+    const basePercent = isRainyWeather ? 60 + Math.random() * 30 : Math.random() * 20;
+
     for (let i = 0; i < 6; i++) {
       const hour = (new Date().getHours() + i) % 24;
-      const percent = basePercent > 0 ? basePercent + Math.random() * 20 : 0;
-      const emoji = percent > 40 ? '🌧️' : '☀️';
+      const percent = Math.max(0, Math.min(100, basePercent + (Math.random() - 0.5) * 30));
+      const emoji = getWeatherIcon(weather?.description || '');
       hours.push({
         hour: `${hour.toString().padStart(2, '0')}:00`,
         emoji,
@@ -609,11 +616,20 @@ export default function App() {
                 </View>
               </View>
 
-              {/* FEATURE 5: Weather Score */}
-              <View style={styles.scoreCard}>
-                <Text style={styles.scoreLabel}>Weather Score</Text>
-                <Text style={styles.scoreValue}>{calculateWeatherScore(weather)}/100</Text>
-              </View>
+              {/* FEATURE 5: Weather Score - Komfort Dnia */}
+              {(() => {
+                const score = calculateWeatherScore(weather);
+                const scoreText = score >= 80 ? '✅ Doskonały dzień' :
+                                 score >= 60 ? '☀️ Dobry dzień' :
+                                 score >= 40 ? '⚠️ Przeciętny dzień' : '❌ Zły dzień';
+                return (
+                  <View style={styles.scoreCard}>
+                    <Text style={styles.scoreLabel}>📊 Komfort Dnia</Text>
+                    <Text style={styles.scoreValue}>{score}/100</Text>
+                    <Text style={styles.scoreText}>{scoreText}</Text>
+                  </View>
+                );
+              })()}
 
               {/* FEATURE 2: Komfort Człowieka */}
               <View style={styles.comfortCard}>
