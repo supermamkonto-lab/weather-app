@@ -647,8 +647,8 @@ export default function App() {
                   <Text style={styles.dashboardValue}>{weather.humidity}</Text>
                 </View>
                 <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>{weather.aqiEmoji} Jakość powietrza</Text>
-                  <Text style={[styles.dashboardValue, { color: weather.aqiColor }]}>
+                  <Text style={styles.dashboardLabel}>{weather.aqiEmoji} Powietrze</Text>
+                  <Text style={[styles.dashboardValue, { color: weather.aqiColor, fontSize: weather.aqi.length > 8 ? 14 : 22 }]}>
                     {weather.aqi}
                   </Text>
                 </View>
@@ -999,8 +999,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    padding: 24, // Increased for better tall-screen utilization (Motorola)
-    paddingBottom: 40,
+    padding: 12,
+    paddingBottom: 32,
   },
   searchBox: {
     flexDirection: 'row',
@@ -1069,8 +1069,8 @@ const styles = StyleSheet.create({
   dashboardBox: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 12,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1085,8 +1085,8 @@ const styles = StyleSheet.create({
   dashboardItem: {
     width: '48%',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingVertical: 8,
+    marginBottom: 10,
+    paddingVertical: 6,
   },
   dashboardLargeItem: {
     width: '100%',
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dashboardBigTemp: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#1e90ff',
   },
@@ -1131,8 +1131,8 @@ const styles = StyleSheet.create({
   weatherBox: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 12,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
