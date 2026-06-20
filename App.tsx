@@ -156,9 +156,24 @@ export default function App() {
 
   const cacheWeatherData = async (w: Weather) => {
     try {
-      await AsyncStorage.setItem('cachedWeather', JSON.stringify(w));
+      const cacheData = { data: w, timestamp: Date.now() };
+      await AsyncStorage.setItem('cachedWeather', JSON.stringify(cacheData));
     } catch (e) {
       console.log('AsyncStorage cache error');
+    }
+  };
+
+  const getCachedWeather = async (): Promise<Weather | null> => {
+    try {
+      const cached = await AsyncStorage.getItem('cachedWeather');
+      if (!cached) return null;
+      const { data, timestamp } = JSON.parse(cached);
+      const age = Date.now() - timestamp;
+      const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+      if (age > CACHE_TTL) return null; // Cache expired
+      return data;
+    } catch (e) {
+      return null;
     }
   };
 
@@ -182,18 +197,32 @@ export default function App() {
     setError('');
 
     try {
-      const response = await axios.get(
-        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`
+      // Parallel API calls for faster loading
+      const wttrPromise = axios.get(
+        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
+        { timeout: 10000 }
       );
 
-      const current = response.data.current_condition[0];
-      const location = response.data.nearest_area[0];
-      const forecastDays = response.data.weather.slice(1, 4); // Skip today, show next 3 days
-      const astronomy = response.data.weather[0].astronomy[0];
+      let aqiResponse: any = null;
+      const wttrResponse = await wttrPromise;
+
+      // Validate API response structure
+      if (!wttrResponse.data?.current_condition?.[0] || !wttrResponse.data?.nearest_area?.[0]) {
+        throw new Error('Invalid wttr.in response structure');
+      }
+
+      const current = wttrResponse.data.current_condition[0];
+      const location = wttrResponse.data.nearest_area[0];
+      const forecastDays = wttrResponse.data.weather?.slice(1, 4) || [];
+      const astronomy = wttrResponse.data.weather?.[0]?.astronomy?.[0];
       const lat = location.latitude;
       const lon = location.longitude;
 
-      // Fetch AQI data from open-meteo
+      if (!lat || !lon) {
+        throw new Error('Could not extract coordinates from response');
+      }
+
+      // Fetch AQI data in parallel (non-blocking)
       let pm25 = 'Brak danych dla lokalizacji';
       let pm10 = 'Brak danych dla lokalizacji';
       let aqi = 'Brak danych dla lokalizacji';
@@ -201,10 +230,11 @@ export default function App() {
       let aqiEmoji = '⚪';
 
       try {
-        // Non-blocking AQI fetch - timeout 2 sec
-        const aqiResponse = await Promise.race([
+        // Non-blocking AQI fetch - timeout 2 sec (parallel with weather)
+        aqiResponse = await Promise.race([
           axios.get(
-            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi`
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi`,
+            { timeout: 2000 }
           ),
           new Promise((_, reject) => setTimeout(() => reject(new Error('AQI timeout')), 2000))
         ]);
@@ -837,12 +867,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 24, // Increased for better tall-screen utilization (Motorola)
     paddingBottom: 40,
   },
   searchBox: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 24, // Increased spacing for tall screen
     gap: 8,
   },
   input: {
