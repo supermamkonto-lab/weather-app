@@ -1,0 +1,28 @@
+# GitHub Code Owners
+# This file designates code ownership and review requirements
+
+# Project Owner - All files
+* @supermamkonto-lab
+
+# Documentation
+*.md @supermamkonto-lab
+/docs/ @supermamkonto-lab
+
+# Source Code
+/src/ @supermamkonto-lab
+App.tsx @supermamkonto-lab
+
+# Tests
+/tests/ @supermamkonto-lab
+/__tests__/ @supermamkonto-lab
+
+# Configuration
+*.json @supermamkonto-lab
+*.config.* @supermamkonto-lab
+.github/ @supermamkonto-lab
+
+# Android Build
+/android/ @supermamkonto-lab
+
+# Owner Contact
+# Paweł Lewowicki - supermamkonto@gmail.com
