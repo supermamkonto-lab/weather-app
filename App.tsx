@@ -959,23 +959,22 @@ export default function App() {
     const temp = parseInt(weather.temp);
     const humidity = parseInt(weather.humidity);
     const hasRain = desc.includes('deszcz') || desc.includes('rain');
-    const isClear = desc.includes('słonecznie') || desc.includes('czyste');
-    const isCloudy = desc.includes('chmur') || desc.includes('cloud');
+    const hasStorm = desc.includes('burza') || desc.includes('storm') || desc.includes('thunder');
+    const hasSnow = desc.includes('śnieg') || desc.includes('snow');
+    const isClear = desc.includes('słonecz') || desc.includes('czyste') || desc.includes('bezchmur') || desc.includes('pogodnie');
+    const aqi = weather.aqi.toLowerCase();
+    const goodAir = aqi.includes('dobra') || aqi.includes('umiarkow');
 
-    let insight = 'Dzień ';
-
-    if (temp > 25) insight += 'będzie ciepły';
-    else if (temp > 15) insight += 'będzie przyjemny';
-    else insight += 'będzie chłodny';
-
-    if (hasRain) insight += ' z opadami. Weź parasol.';
-    else if (isClear) insight += ' i słoneczny.';
-    else if (isCloudy) insight += ' i pochmurny.';
-    else insight += '.';
-
-    if (humidity > 80) insight += ' Wilgoć wysoka.';
-
-    return insight;
+    if (hasStorm) return `Dziś burza — zostań w domu, unikaj otwartej przestrzeni.`;
+    if (hasSnow) return `Dziś opady śniegu ${temp}°C — ostrożnie na drogach, ciepłe ubranie obowiązkowe.`;
+    if (hasRain && temp < 10) return `Zimno i deszczowo — kurtka plus parasol, wyjście krótkie.`;
+    if (hasRain) return `Dziś deszczowo — weź parasol przed wyjściem.`;
+    if (temp >= 20 && isClear && goodAir) return `Dziś idealny dzień — ${temp}°C, słonecznie, powietrze czyste. Warto wyjść.`;
+    if (temp >= 18 && !hasRain) return `Przyjemne ${temp}°C i bez opadów — dobry dzień na aktywność na zewnątrz.`;
+    if (temp < 5) return `Mróz ${temp}°C — ubierz się ciepło, rękawiczki i czapka w obowiązkowym.`;
+    if (temp < 12) return `Chłodny dzień ${temp}°C — kurtka przyda się przez cały dzień.`;
+    if (humidity > 80) return `Duszno i wilgotno — ${temp}°C odczuwalne jak więcej. Nawadniaj się regularnie.`;
+    return `Dziś ${weather.description.toLowerCase()}, ${temp}°C — warunki do aktywności na zewnątrz.`;
   };
 
   const generateGoOutDecision = (weather: Weather): { verdict: string; reason: string; emoji: string; color: string } => {
@@ -1151,28 +1150,28 @@ export default function App() {
             }}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>🔍</Text>
+            <Text style={[styles.buttonText, { fontSize: 14, fontWeight: '700', color: '#fff' }]}>Szukaj</Text>
           </TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'transparent' }}>
           <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowHistory(true); setShowSearch(false); }}>
-            <Text style={styles.menuActionText}>📋 Historia</Text>
+            <Text style={styles.menuActionText}>Historia</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowComparison(true); setShowSearch(false); fetchComparisonData(); }}>
-            <Text style={styles.menuActionText}>⚖️ Porównaj miasta</Text>
+            <Text style={styles.menuActionText}>Porównaj miasta</Text>
           </TouchableOpacity>
           {weather && (
             <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowSportModal(true); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>🚴 Sport/Rower</Text>
+              <Text style={styles.menuActionText}>Sport / Rower</Text>
             </TouchableOpacity>
           )}
           {weather && (
             <TouchableOpacity style={styles.menuActionBtn} onPress={() => { shareWeather(); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>📤 Udostępnij</Text>
+              <Text style={styles.menuActionText}>Udostępnij</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.menuActionBtn, { borderColor: notificationsEnabled ? '#4caf50' : '#999' }]}
+            style={[styles.menuActionBtn, { borderColor: notificationsEnabled ? '#4caf50' : 'rgba(255,255,255,0.5)' }]}
             onPress={async () => {
               if (notificationsEnabled) {
                 const { cancelDailyReport } = require('./src/services/notificationService');
@@ -1184,8 +1183,8 @@ export default function App() {
               }
             }}
           >
-            <Text style={[styles.menuActionText, { color: notificationsEnabled ? '#4caf50' : '#999' }]}>
-              {notificationsEnabled ? '🔔 Alerty: WŁ' : '🔕 Alerty: WYŁ'}
+            <Text style={[styles.menuActionText, { color: notificationsEnabled ? '#4caf50' : '#0d47a1' }]}>
+              {notificationsEnabled ? 'Alerty: WŁ' : 'Alerty: WYŁ'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1209,7 +1208,7 @@ export default function App() {
         {weather && !loading && (
           <Animated.View style={[styles.hero, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
             <Text style={styles.heroLocation} numberOfLines={1}>
-              📍 {weather.location
+              {weather.location
                 .replace(/^Warsaw,/, 'Warszawa,').replace(/^Wawel,/, 'Kraków,').replace(/^Krakow,/, 'Kraków,')
                 .replace(/^Lodz,/, 'Łódź,').replace(/^Wroclaw,/, 'Wrocław,').replace(/^Poznan,/, 'Poznań,')
                 .replace(/^Gdansk,/, 'Gdańsk,').replace(', Poland', ', Polska')}
@@ -1234,6 +1233,29 @@ export default function App() {
             </View>
           </Animated.View>
         )}
+
+        {/* DAILY DECISION — odpowiedź na pytanie rano (przed miastami, nad foldem) */}
+        {weather && !loading && (() => {
+          const dec = generateGoOutDecision(weather);
+          return (
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => { haptic(); setShowSportModal(true); }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.26)', flexDirection: 'row', alignItems: 'center' }}
+            >
+              <View style={{ width: 5, height: 44, borderRadius: 3, backgroundColor: dec.color, marginRight: 14, shadowColor: dec.color, shadowOpacity: 0.6, shadowRadius: 6, elevation: 3 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.2, textShadowColor: 'rgba(0,0,0,0.25)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
+                  {dec.verdict}
+                </Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', marginTop: 3, lineHeight: 18 }}>
+                  {dec.reason}
+                </Text>
+              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 18, fontWeight: '300', marginLeft: 8 }}>›</Text>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Ulubione miasta */}
         <Text style={styles.favoritesTitle}>ULUBIONE MIASTA</Text>
@@ -1271,7 +1293,7 @@ export default function App() {
         {/* BANNER ZAUFANIA OFFLINE — użytkownik wie, że aplikacja działa */}
         {isOffline && weather && (
           <View style={styles.offlineBanner}>
-            <Text style={styles.offlineBannerTitle}>📡 Brak połączenia z internetem</Text>
+            <Text style={styles.offlineBannerTitle}>Brak połączenia z internetem</Text>
             <Text style={styles.offlineBannerText}>Wyświetlam ostatnio zapisane dane.</Text>
             {dataTimestamp && (
               <Text style={styles.offlineBannerTime}>
@@ -1377,11 +1399,11 @@ export default function App() {
                         )}
                       </View>
                     </View>
-                    <View style={{ backgroundColor: decision.color + '18', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: decision.color, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: decision.color }}>
-                        {decision.emoji} {decision.verdict}
+                    <View style={{ backgroundColor: decision.color + '12', borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: decision.color, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: decision.color, letterSpacing: 0.2 }}>
+                        {decision.verdict}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{decision.reason}</Text>
+                      <Text style={{ fontSize: 12, color: '#555', marginTop: 3, lineHeight: 17 }}>{decision.reason}</Text>
                     </View>
                   </>
                 );
@@ -1438,7 +1460,7 @@ export default function App() {
                           </View>
                           <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{h.temp}</Text>
                           {h.rainChance > 15 && (
-                            <Text style={{ fontSize: 10, color: '#1e90ff' }}>💧{h.rainChance}%</Text>
+                            <Text style={{ fontSize: 10, color: '#1e90ff', fontWeight: '700' }}>{h.rainChance}%</Text>
                           )}
                           <View style={{ marginTop: 4, width: 36, height: 4, borderRadius: 2, backgroundColor: '#eee' }}>
                             <View style={{ width: `${h.comfort}%` as any, height: 4, borderRadius: 2, backgroundColor: comfortColor }} />
@@ -1505,9 +1527,7 @@ export default function App() {
                     }
                   }}
                 >
-                  <Text style={styles.favoriteButtonText}>
-                    {favorites.includes(city) ? '⭐' : '☆'}
-                  </Text>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: favorites.includes(city) ? '#ffd54f' : 'transparent', borderWidth: 2, borderColor: favorites.includes(city) ? '#ffd54f' : '#aaa' }} />
                 </TouchableOpacity>
               </View>
 
@@ -1707,7 +1727,7 @@ export default function App() {
 
       {/* HISTORIA Modal */}
       <Modal visible={showHistory} transparent={false} animationType="slide" onRequestClose={() => setShowHistory(false)}>
-        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        <View style={{ flex: 1, backgroundColor: '#eef2f6' }}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowHistory(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
@@ -1719,15 +1739,27 @@ export default function App() {
           </View>
           <ScrollView style={{ flex: 1, padding: 12 }}>
             {weatherHistory.length === 0 ? (
-              <Text style={{ color: '#666', textAlign: 'center', marginTop: 40 }}>Brak historii — odśwież pogodę kilka razy</Text>
+              <View style={{ alignItems: 'center', marginTop: 60 }}>
+                <Text style={{ fontSize: 15, color: '#9aa5b1', fontWeight: '600' }}>Brak historii</Text>
+                <Text style={{ fontSize: 13, color: '#b0bec5', marginTop: 6 }}>Odśwież pogodę kilka razy, aby zobaczyć historię.</Text>
+              </View>
             ) : weatherHistory.map((entry, i) => (
-              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', elevation: 1 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: entry.aqiColor, marginRight: 10 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{entry.city} — {entry.temp}</Text>
-                  <Text style={{ fontSize: 11, color: '#666' }}>{entry.description} · AQI: {entry.aqi}</Text>
+              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 5, height: 42, borderRadius: 3, backgroundColor: entry.aqiColor, marginRight: 14 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#1a1a1a' }}>{entry.city}</Text>
+                    <Text style={{ fontSize: 20, fontWeight: '200', color: '#333', fontVariant: ['tabular-nums'], marginTop: 2 }}>{entry.temp}</Text>
+                    <Text style={{ fontSize: 12, color: '#777', marginTop: 3 }}>{entry.description}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 10, color: '#b0bec5', fontWeight: '600' }}>{entry.timestamp}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 4 }}>
+                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: entry.aqiColor }} />
+                      <Text style={{ fontSize: 11, color: '#777' }}>AQI: {entry.aqi}</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={{ fontSize: 10, color: '#999' }}>{entry.timestamp}</Text>
               </View>
             ))}
           </ScrollView>
@@ -1736,7 +1768,7 @@ export default function App() {
 
       {/* PORÓWNANIE MIAST Modal */}
       <Modal visible={showComparison} transparent={false} animationType="slide" onRequestClose={() => setShowComparison(false)}>
-        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        <View style={{ flex: 1, backgroundColor: '#eef2f6' }}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowComparison(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
@@ -1758,20 +1790,28 @@ export default function App() {
               Object.entries(comparisonData)
                 .sort(([,a], [,b]) => (b as any).comfort - (a as any).comfort)
                 .map(([cityName, data]: [string, any], i) => (
-                <View key={cityName} style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 8, elevation: 2 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 18, marginRight: 6 }}>{i === 0 ? '🏆' : `${i+1}.`}</Text>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#333', flex: 1 }}>{cityName}</Text>
-                    <View style={{ backgroundColor: data.comfort >= 75 ? '#4caf50' : data.comfort >= 50 ? '#ff9800' : '#f44336', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Komfort {data.comfort}/100</Text>
+                <View key={cityName} style={{ backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 10, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    {i === 0 ? (
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#ffd54f', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#795548' }}>1</Text>
+                      </View>
+                    ) : (
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#666' }}>{i+1}</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#1a1a1a', flex: 1 }}>{cityName}</Text>
+                    <View style={{ backgroundColor: data.comfort >= 75 ? '#4caf50' : data.comfort >= 50 ? '#ff9800' : '#f44336', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{data.comfort}/100</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                    <Text style={{ fontSize: 13 }}>{data.icon} {data.temp}</Text>
-                    <Text style={{ fontSize: 12, color: '#666' }}>· {data.desc}</Text>
-                    <Text style={{ fontSize: 12, color: '#666' }}>· 💨 {data.wind}</Text>
-                    <Text style={{ fontSize: 12, color: '#666' }}>· 💧 {data.humidity}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a1a1a' }}>{data.temp}</Text>
+                    <Text style={{ fontSize: 13, color: '#666' }}>· {data.desc}</Text>
+                    <Text style={{ fontSize: 13, color: '#666' }}>· wiatr {data.wind}</Text>
+                    <Text style={{ fontSize: 13, color: '#666' }}>· wilg. {data.humidity}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: data.aqiColor }} />
                       <Text style={{ fontSize: 12, color: '#666' }}>AQI: {data.aqiLabel}</Text>
                     </View>
@@ -1785,7 +1825,7 @@ export default function App() {
 
       {/* SPORT / ROWER Modal */}
       <Modal visible={showSportModal} transparent={false} animationType="slide" onRequestClose={() => setShowSportModal(false)}>
-        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        <View style={{ flex: 1, backgroundColor: '#eef2f6' }}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowSportModal(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
@@ -1799,33 +1839,38 @@ export default function App() {
                 const rec = getSportRecommendation(weather);
                 return (
                   <>
-                    <View style={{ backgroundColor: rec.color + '18', borderRadius: 14, padding: 20, alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: rec.color }}>
-                      <Text style={{ fontSize: 48 }}>{rec.emoji}</Text>
-                      <Text style={{ fontSize: 18, fontWeight: '700', color: rec.color, marginTop: 8 }}>{rec.verdict}</Text>
+                    {/* Karta-bohater: verdict + ikona pogody */}
+                    <View style={{ backgroundColor: rec.color, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16 }}>
+                      <WeatherIcon desc={weather.description} night={theme.night} size={52} />
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 14, textAlign: 'center', letterSpacing: 0.2 }}>{rec.verdict}</Text>
+                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', marginTop: 6, textAlign: 'center' }}>{weather.description} · {weather.temp}</Text>
                     </View>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 8 }}>Warunki:</Text>
+                    <SectionHeader title="Warunki" accent={rec.color} />
                     {rec.details.map((d, i) => (
-                      <View key={i} style={{ backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 6, elevation: 1 }}>
-                        <Text style={{ fontSize: 13, color: '#333' }}>{d}</Text>
+                      <View key={i} style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}>
+                        <Text style={{ fontSize: 13, color: '#333', fontWeight: '500' }}>{d}</Text>
                       </View>
                     ))}
                     {weather.hourly && weather.hourly.length > 0 && (
                       <>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#333', marginTop: 16, marginBottom: 8 }}>Najlepsze godziny dziś:</Text>
+                        <SectionHeader title="Najlepsze godziny" accent={rec.color} />
                         {weather.hourly
                           .filter(h => h.comfort >= 70)
                           .slice(0, 4)
                           .map((h, i) => (
-                          <View key={i} style={{ backgroundColor: '#e8f5e9', borderRadius: 8, padding: 10, marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ fontSize: 20, marginRight: 10 }}>{h.icon}</Text>
-                            <View>
+                          <View key={i} style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}>
+                            <WeatherIcon desc={h.cond} night={h.night} size={32} />
+                            <View style={{ marginLeft: 12 }}>
                               <Text style={{ fontSize: 14, fontWeight: '700', color: '#2e7d32' }}>{h.time} — komfort {h.comfort}/100</Text>
-                              <Text style={{ fontSize: 12, color: '#555' }}>{h.temp} · deszcz {h.rainChance}% · wiatr {Math.round(h.windKmph)} km/h</Text>
+                              <Text style={{ fontSize: 12, color: '#777', marginTop: 2 }}>{h.temp} · deszcz {h.rainChance}% · wiatr {Math.round(h.windKmph)} km/h</Text>
                             </View>
                           </View>
                         ))}
                         {weather.hourly.filter(h => h.comfort >= 70).length === 0 && (
-                          <Text style={{ color: '#f44336', fontStyle: 'italic' }}>Dziś brak godzin z komfortem ≥70. Rozważ jutro.</Text>
+                          <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, elevation: 2 }}>
+                            <Text style={{ color: '#f44336', fontWeight: '600' }}>Dziś brak godzin z komfortem ≥70.</Text>
+                            <Text style={{ color: '#777', fontSize: 12, marginTop: 4 }}>Rozważ aktywność jutro.</Text>
+                          </View>
                         )}
                       </>
                     )}
@@ -1844,7 +1889,7 @@ export default function App() {
         animationType="slide"
         onRequestClose={() => setShowICMModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <View style={{ flex: 1, backgroundColor: '#eef2f6' }}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowICMModal(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
@@ -1972,7 +2017,7 @@ export default function App() {
                     <View style={{ backgroundColor: '#e3f2fd', borderRadius: 10, padding: 14, marginBottom: 24 }}>
                       <Text style={{ fontSize: 13, fontWeight: '500', color: '#1565c0', marginBottom: 6 }}>Jakość powietrza</Text>
                       <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
-                        {weather.aqiEmoji} <Text style={{ fontWeight: '500' }}>{weather.aqi}</Text>{'\n'}
+                        <Text style={{ fontWeight: '500' }}>{weather.aqi}</Text>{'\n'}
                         PM2.5: {weather.pm25} · PM10: {weather.pm10}{'\n'}
                         {weather.aqi.toLowerCase().includes('dobra') ? 'Powietrze czyste — bezpieczne dla wszystkich.'
                           : weather.aqi.toLowerCase().includes('umiarkowana') ? 'Powietrze umiarkowane — wrażliwe osoby mogą odczuć dyskomfort.'
