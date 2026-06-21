@@ -200,16 +200,54 @@ const WWO_CODE_PL: { [code: string]: string } = {
   '395': 'Intensywny śnieg z burzą',
 };
 
+// WMO code mapping (Open-Meteo uses WMO codes, NOT WWO codes)
+const WMO_CODE_PL: { [code: number]: string } = {
+  0: 'Bezchmurnie',
+  1: 'Przeważnie pogodnie',
+  2: 'Częściowe zachmurzenie',
+  3: 'Zachmurzenie',
+  45: 'Zamglenie',
+  48: 'Mgła ze szronem',
+  51: 'Lekka mżawka',
+  53: 'Umiarkowana mżawka',
+  55: 'Gęsta mżawka',
+  61: 'Słaby deszcz',
+  63: 'Umiarkowany deszcz',
+  65: 'Intensywny deszcz',
+  71: 'Słaby śnieg',
+  73: 'Umiarkowany śnieg',
+  75: 'Intensywny śnieg',
+  77: 'Ziarna śniegu',
+  80: 'Słabe przelotne opady',
+  81: 'Umiarkowane przelotne opady',
+  82: 'Gwałtowne przelotne opady',
+  85: 'Słabe przelotne opady śniegu',
+  86: 'Intensywne przelotne opady śniegu',
+  95: 'Burza',
+  96: 'Burza z drobnym gradem',
+  99: 'Burza z intensywnym gradem',
+};
+
 const translateWeather = (desc: string): string => {
   const lower = (desc || '').toLowerCase().trim();
   return WEATHER_TRANSLATIONS[lower] || desc;
 };
 
-// Tłumaczenie opisu pogody — priorytet: kod WWO (bulletproof) → słownik tekstowy
+// Tłumaczenie opisu pogody — priorytet: kod WMO (Open-Meteo) → kod WWO (fallback) → słownik tekstowy
 // Użytkownik NIGDY nie widzi angielskiego opisu z API.
 const getPolishDesc = (item: any): string => {
-  const code = (item?.weatherCode || '').toString().trim();
-  if (code && WWO_CODE_PL[code]) return WWO_CODE_PL[code];
+  const code = item?.weatherCode;
+  // Try WMO first (Open-Meteo uses WMO: 0, 1, 3, 95, etc.)
+  if (code !== undefined && code !== null) {
+    const codeNum = Number(code);
+    if (!isNaN(codeNum) && WMO_CODE_PL[codeNum]) {
+      return WMO_CODE_PL[codeNum];
+    }
+    // Fallback to WWO (legacy, wttr.in used WWO: '113', '389', etc.)
+    const codeStr = code.toString().trim();
+    if (WWO_CODE_PL[codeStr]) return WWO_CODE_PL[codeStr];
+  }
+  // Last resort: text translation
   const en = (item?.weatherDesc?.[0]?.value || '').trim();
   return translateWeather(en);
 };
@@ -541,20 +579,41 @@ export default function App() {
     setError('');
 
     try {
-      // PHASE 6C: Get coordinates via wttr.in location lookup (minimal)
-      const locationPromise = axios.get(
-        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
-        { timeout: 5000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
-      );
+      // PHASE 6C: Get coordinates via wttr.in location lookup (with fallback for offline)
+      let lat: string | number = 0;
+      let lon: string | number = 0;
+      let location: any = { country: [{ value: 'Polska' }] };
 
-      const locationResponse = await locationPromise;
-      if (!locationResponse.data?.nearest_area?.[0]) {
-        throw new Error('Could not get location');
+      try {
+        const locationResponse = await axios.get(
+          `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
+          { timeout: 5000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
+        );
+
+        if (locationResponse.data?.nearest_area?.[0]) {
+          location = locationResponse.data.nearest_area[0];
+          lat = location.latitude;
+          lon = location.longitude;
+        }
+      } catch (locErr) {
+        // Fallback: use cached coordinates or common Polish city coords
+        console.warn('Location lookup failed, using fallback');
+        const coordsMap: { [key: string]: [number, number] } = {
+          'Częstochowa': [50.8118, 19.1216],
+          'Warszawa': [52.2297, 21.0122],
+          'Kraków': [50.0647, 19.9450],
+          'Wrocław': [51.1079, 17.0385],
+          'Poznań': [52.4082, 16.9454],
+        };
+        const key = cityName.trim().toLowerCase();
+        const found = Object.keys(coordsMap).find(k => k.toLowerCase() === key);
+        if (found) {
+          [lat, lon] = coordsMap[found];
+        } else {
+          // Default to Warszawa if city not found
+          [lat, lon] = [52.2297, 21.0122];
+        }
       }
-
-      const location = locationResponse.data.nearest_area[0];
-      const lat = location.latitude;
-      const lon = location.longitude;
 
       if (!lat || !lon) {
         throw new Error('Could not extract coordinates');
@@ -583,14 +642,20 @@ export default function App() {
           // Hourly - map to wttr.in-like structure (current day only = first 24h)
           if (data.hourly) {
             const hourlyData = data.hourly;
-            todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => ({
-              time: `${idx.toString().padStart(2, '0')}:00`, // Index as hour: 0→00:00, 1→01:00, etc
-              tempC: hourlyData.temperature_2m[idx],
-              chanceofrain: hourlyData.precipitation_probability[idx],
-              windspeedKmph: hourlyData.wind_speed_10m[idx],
-              uvIndex: hourlyData.uv_index[idx],
-              weatherCode: hourlyData.weather_code[idx],
-            }));
+            console.log('DEBUG hourlyData.time[0]:', hourlyData.time[0]);
+            console.log('DEBUG hourlyData.time[0].slice(-5):', hourlyData.time[0]?.slice(-5));
+            console.log('DEBUG hourlyData.time length:', hourlyData.time?.length);
+            todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => {
+              if (idx === 0) console.log('DEBUG map time[0]:', time, 'slice(-5):', time.slice(-5));
+              return {
+                time: time.slice(-5),
+                tempC: hourlyData.temperature_2m[idx],
+                chanceofrain: hourlyData.precipitation_probability[idx],
+                windspeedKmph: hourlyData.wind_speed_10m[idx],
+                uvIndex: hourlyData.uv_index[idx],
+                weatherCode: hourlyData.weather_code[idx],
+              };
+            });
           }
 
           // Daily - forecast
