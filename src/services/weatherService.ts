@@ -70,7 +70,8 @@ export const parseWeatherResponse = (data: any): Weather => {
   const tempC = current.temp_C;
   const windKmph = current.windspeedKmph;
   const humidity = current.humidity;
-  const feelsLikeTemp = calculateFeelsLike(tempC, humidity, windKmph);
+  const AUDIT_MARKER_v2 = 'FEELSLIKE_API_FIX';
+  const feelsLikeTemp = current.FeelsLikeC !== undefined ? current.FeelsLikeC : calculateFeelsLike(tempC, humidity, windKmph);
   const now = new Date();
   const lastUpdate = now.toLocaleTimeString('pl-PL', {
     hour: '2-digit',
