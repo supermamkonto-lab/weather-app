@@ -25,6 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import WeatherIcon from './src/components/WeatherIcon';
 import TempCurve from './src/components/TempCurve';
 import SectionHeader from './src/components/SectionHeader';
+import UiIcon from './src/components/UiIcon';
 import { Dimensions } from 'react-native';
 import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
 import { NativeModules } from 'react-native';
@@ -1117,32 +1118,11 @@ export default function App() {
       />
 
       <View style={styles.header}>
-        <Text style={styles.title}>⛅ Pogoda</Text>
+        <Text style={styles.title}>Pogoda</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => {
-              if (weather) {
-                setShowForecastModal(true);
-              }
-            }}
-          >
-            <Text style={styles.menuButtonText}>📅</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => {
-              if (weather) {
-                setShowICMInterpretation(false);
-                setShowICMModal(true);
-              }
-            }}
-          >
-            <Text style={styles.menuButtonText}>🌦️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setShowSearch(!showSearch)}
+            onPress={() => { haptic(); setShowSearch(!showSearch); }}
           >
             <Text style={styles.menuButtonText}>≡</Text>
           </TouchableOpacity>
@@ -1308,27 +1288,27 @@ export default function App() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14, flexGrow: 0 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowForecastModal(true); }}>
-                <Text style={styles.quickActionEmoji}>📅</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="calendar" size={22} /></View>
                 <Text style={styles.quickActionText}>Prognoza</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowICMInterpretation(false); setShowICMModal(true); }}>
-                <Text style={styles.quickActionEmoji}>🌦️</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="chart" size={22} /></View>
                 <Text style={styles.quickActionText}>ICM</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowSportModal(true); }}>
-                <Text style={styles.quickActionEmoji}>🚴</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="bike" size={22} /></View>
                 <Text style={styles.quickActionText}>Sport</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowComparison(true); fetchComparisonData(); }}>
-                <Text style={styles.quickActionEmoji}>⚖️</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="compare" size={22} /></View>
                 <Text style={styles.quickActionText}>Porównaj</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowHistory(true); }}>
-                <Text style={styles.quickActionEmoji}>📋</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="history" size={22} /></View>
                 <Text style={styles.quickActionText}>Historia</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); shareWeather(); }}>
-                <Text style={styles.quickActionEmoji}>📤</Text>
+                <View style={styles.quickActionIcon}><UiIcon name="share" size={22} /></View>
                 <Text style={styles.quickActionText}>Udostępnij</Text>
               </TouchableOpacity>
             </View>
@@ -2143,6 +2123,11 @@ const styles = StyleSheet.create({
   quickActionEmoji: {
     fontSize: 22,
     marginBottom: 3,
+  },
+  quickActionIcon: {
+    marginBottom: 5,
+    height: 22,
+    justifyContent: 'center',
   },
   quickActionText: {
     fontSize: 11,
