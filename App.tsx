@@ -1643,37 +1643,37 @@ export default function App() {
           </View>
 
           {weather && (
-            <ScrollView style={styles.modalContent}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
+            <View style={styles.modalContent}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 6 }}>
                 {weather.forecast.map((day, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={{ width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}
+                    style={{ width: '48%', backgroundColor: '#fff', borderRadius: 10, padding: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
                     onPress={() => {
                       setSelectedDay(day);
                       setShowForecastModal(false);
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#9aa5b1', letterSpacing: 0.2, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: '#9aa5b1', marginBottom: 2 }}>
                       {formatPolishDate(day.date).split(',')[0]}
                     </Text>
-                    <View style={{ alignItems: 'center', marginVertical: 8 }}>
-                      <WeatherIcon desc={day.description} size={36} />
+                    <View style={{ alignItems: 'center', marginVertical: 3 }}>
+                      <WeatherIcon desc={day.description} size={28} />
                     </View>
-                    <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 8 }}>
-                      {day.description}
+                    <Text style={{ fontSize: 9, color: '#666', textAlign: 'center', marginBottom: 4, lineHeight: 12 }}>
+                      {day.description.length > 12 ? day.description.split(' ').slice(0, 2).join(' ') : day.description}
                     </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '600' }}>Maks</Text>
-                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#f44336', marginTop: 2 }}>
+                        <Text style={{ fontSize: 7, color: '#9aa5b1', fontWeight: '600' }}>Max</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#f44336' }}>
                           {day.maxTemp.replace('°C', '°')}
                         </Text>
                       </View>
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '600' }}>Min</Text>
-                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e90ff', marginTop: 2 }}>
+                        <Text style={{ fontSize: 7, color: '#9aa5b1', fontWeight: '600' }}>Min</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#1e90ff' }}>
                           {day.minTemp.replace('°C', '°')}
                         </Text>
                       </View>
@@ -1681,7 +1681,7 @@ export default function App() {
                   </TouchableOpacity>
                 ))}
               </View>
-            </ScrollView>
+            </View>
           )}
         </View>
       </Modal>
