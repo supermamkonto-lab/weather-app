@@ -560,7 +560,6 @@ export default function App() {
 
       const current = wttrResponse.data.current_condition[0];
       const location = wttrResponse.data.nearest_area[0];
-      const forecastDays = wttrResponse.data.weather?.slice(1, 6) || [];
       const todayHourly = wttrResponse.data.weather?.[0]?.hourly || [];
       const astronomy = wttrResponse.data.weather?.[0]?.astronomy?.[0];
       const lat = location.latitude;
@@ -568,6 +567,26 @@ export default function App() {
 
       if (!lat || !lon) {
         throw new Error('Could not extract coordinates from response');
+      }
+
+      // PHASE 6B: Fetch forecast from Open-Meteo (6 dni instead of wttr.in's 3)
+      let forecastDays: any[] = [];
+      try {
+        const forecastResponse = await axios.get(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe/Warsaw&forecast_days=6`,
+          { timeout: 5000 }
+        );
+        if (forecastResponse.data?.daily) {
+          const daily = forecastResponse.data.daily;
+          forecastDays = daily.time.map((date: string, idx: number) => ({
+            date,
+            maxtempC: Math.round(daily.temperature_2m_max[idx]),
+            mintempC: Math.round(daily.temperature_2m_min[idx]),
+            weatherCode: daily.weather_code[idx],
+          }));
+        }
+      } catch (err) {
+        console.warn('Open-Meteo forecast fetch failed, forecast will be empty');
       }
 
       // Fetch AQI data in parallel (non-blocking)
@@ -666,13 +685,16 @@ export default function App() {
         };
       });
 
-      const forecast = forecastDays.map((day: any) => ({
-        date: day.date,
-        maxTemp: `${day.maxtempC}°C`,
-        minTemp: `${day.mintempC}°C`,
-        description: getPolishDesc(day.hourly?.[4]) || 'Brak danych',
-        icon: getWeatherIcon(day.hourly?.[4]?.weatherDesc?.[0]?.value || ''),
-      }));
+      const forecast = forecastDays.map((day: any) => {
+        const polishDesc = getPolishDesc(day);
+        return {
+          date: day.date,
+          maxTemp: `${day.maxtempC}°C`,
+          minTemp: `${day.mintempC}°C`,
+          description: polishDesc || 'Brak danych',
+          icon: getWeatherIcon(polishDesc),
+        };
+      });
 
       const weatherData = {
         temp: `${tempC}°C`,
