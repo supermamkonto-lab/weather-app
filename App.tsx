@@ -577,7 +577,6 @@ export default function App() {
 
     setLoading(true);
     setError('');
-    console.log('STEP 1 - GEOCODING: Starting location lookup for', cityName);
 
     try {
       // PHASE 6C: Get coordinates via wttr.in location lookup (with fallback for offline)
@@ -586,7 +585,6 @@ export default function App() {
       let location: any = { country: [{ value: 'Polska' }] };
 
       try {
-        console.log('STEP 2 - GEOCODING: Fetching from wttr.in...');
         const locationResponse = await axios.get(
           `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
           { timeout: 5000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
@@ -596,11 +594,9 @@ export default function App() {
           location = locationResponse.data.nearest_area[0];
           lat = location.latitude;
           lon = location.longitude;
-          console.log('STEP 2 - GEOCODING: OK - got coords', lat, lon);
         }
       } catch (locErr) {
         // Fallback: use cached coordinates or common Polish city coords
-        console.warn('STEP 2 - GEOCODING: FAIL -', locErr.message, '- using fallback');
         const coordsMap: { [key: string]: [number, number] } = {
           'Częstochowa': [50.8118, 19.1216],
           'Warszawa': [52.2297, 21.0122],
@@ -616,11 +612,9 @@ export default function App() {
           // Default to Warszawa if city not found
           [lat, lon] = [52.2297, 21.0122];
         }
-        console.log('STEP 2 - GEOCODING: Fallback used, coords', lat, lon);
       }
 
       if (!lat || !lon) {
-        console.error('STEP 2 - GEOCODING: ERROR - no coords');
         throw new Error('Could not extract coordinates');
       }
 
@@ -633,19 +627,16 @@ export default function App() {
       let currentData: any = {};
 
       try {
-        console.log('STEP 3 - OPEN-METEO: Fetching forecast...');
         openMeteoResponse = await axios.get(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,pressure_msl,cloud_cover,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe/Warsaw&forecast_days=6`,
           { timeout: 10000 }
         );
 
         if (openMeteoResponse.data) {
-          console.log('STEP 3 - OPEN-METEO: OK - got response');
           const data = openMeteoResponse.data;
 
           // Current weather
           currentData = data.current || {};
-          console.log('STEP 4 - PARSE CURRENT: OK');
 
           // Hourly - map to wttr.in-like structure (current day only = first 24h)
           if (data.hourly) {
@@ -660,7 +651,6 @@ export default function App() {
                 weatherCode: hourlyData.weather_code[idx],
               };
             });
-            console.log('STEP 5 - PARSE HOURLY: OK -', todayHourly.length, 'hours');
           }
 
           // Daily - forecast
@@ -675,11 +665,9 @@ export default function App() {
             // Get sunrise/sunset from first day (today)
             sunriseStr = daily.sunrise?.[0] || '';
             sunsetStr = daily.sunset?.[0] || '';
-            console.log('STEP 6 - PARSE DAILY: OK -', forecastDays.length, 'days');
           }
         }
       } catch (err) {
-        console.error('STEP 3 - OPEN-METEO: FAIL -', err.message, 'lat:', lat, 'lon:', lon, 'code:', err.code, 'status:', err.response?.status);
         throw new Error('Open-Meteo API failed');
       }
 
@@ -838,8 +826,8 @@ export default function App() {
         });
       } catch {}
       sendAQIAlert(aqi, cityName.trim(), aqiColor).catch(() => {});
-      sendStormAlert(getPolishDesc(current), cityName.trim()).catch(() => {});
-      const polishDesc = getPolishDesc(current);
+      sendStormAlert(getPolishDesc(currentData), cityName.trim()).catch(() => {});
+      const polishDesc = getPolishDesc(currentData);
       const histEntry: HistoryEntry = {
         timestamp: new Date().toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
         city: cityName.trim(),
@@ -851,7 +839,6 @@ export default function App() {
       };
       saveHistoryEntry(histEntry);
     } catch (err) {
-      console.error('STEP 7 - RENDER: MAIN ERROR -', err.message);
       // Odczytaj cache bezpośrednio z dysku (pewniejsze niż stan przy zimnym starcie)
       let cachedRaw: string | null = null;
       try { cachedRaw = await AsyncStorage.getItem('cachedWeather'); } catch {}
@@ -866,7 +853,6 @@ export default function App() {
       }
       if (fallback) {
         // Mamy zapisane dane — pokaż je z banerem offline (NIE wygląda na uszkodzoną)
-        console.log('STEP 7 - RENDER: Using fallback cache');
         setWeather(fallback);
         setCachedWeather(fallback);
         if (fallbackTs) setDataTimestamp(fallbackTs);
@@ -874,13 +860,11 @@ export default function App() {
         setError('');
       } else {
         // Brak internetu i brak jakichkolwiek zapisanych danych
-        console.error('STEP 7 - RENDER: No cache, showing offline error');
         setIsOffline(true);
         setError('Brak połączenia z internetem i brak zapisanych danych.');
       }
     } finally {
       setLoading(false);
-      console.log('STEP 7 - RENDER: Complete');
     }
   };
 
