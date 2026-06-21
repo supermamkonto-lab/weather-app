@@ -628,7 +628,7 @@ export default function App() {
 
       try {
         openMeteoResponse = await axios.get(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,pressure_msl,cloud_cover,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe/Warsaw&forecast_days=6`,
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,pressure_msl,cloud_cover,uv_index,visibility&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe/Warsaw&forecast_days=6`,
           { timeout: 10000 }
         );
 
@@ -788,7 +788,7 @@ export default function App() {
         forecast,
         hourly,
         pressure: `${Math.round(currentData.pressure_msl || 0)} hPa`,
-        visibility: `—`,
+        visibility: currentData.visibility ? `${Math.round(currentData.visibility / 1000)} km` : 'Brak danych',
         uvIndex: `${Math.round(currentData.uv_index || 0)}`,
         sunrise: sunriseStr.substring(11, 16),
         sunset: sunsetStr.substring(11, 16),
@@ -1029,24 +1029,16 @@ export default function App() {
 
   const calculateDayLength = (sunrise: string, sunset: string): string => {
     try {
-      const sunriseMatch = sunrise.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-      const sunsetMatch = sunset.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      // Open-Meteo returns HH:MM in 24-hour format (no AM/PM)
+      const sunriseMatch = sunrise.match(/(\d+):(\d+)/);
+      const sunsetMatch = sunset.match(/(\d+):(\d+)/);
 
       if (!sunriseMatch || !sunsetMatch) return "N/A";
 
-      let sunriseH = parseInt(sunriseMatch[1], 10);
+      const sunriseH = parseInt(sunriseMatch[1], 10);
       const sunriseM = parseInt(sunriseMatch[2], 10);
-      const sunrisePeriod = sunriseMatch[3]?.toUpperCase() || 'AM';
-
-      let sunsetH = parseInt(sunsetMatch[1], 10);
+      const sunsetH = parseInt(sunsetMatch[1], 10);
       const sunsetM = parseInt(sunsetMatch[2], 10);
-      const sunsetPeriod = sunsetMatch[3]?.toUpperCase() || 'PM';
-
-      if (sunrisePeriod === 'PM' && sunriseH !== 12) sunriseH += 12;
-      if (sunrisePeriod === 'AM' && sunriseH === 12) sunriseH = 0;
-
-      if (sunsetPeriod === 'PM' && sunsetH !== 12) sunsetH += 12;
-      if (sunsetPeriod === 'AM' && sunsetH === 12) sunsetH = 0;
 
       const diff = (sunsetH * 60 + sunsetM) - (sunriseH * 60 + sunriseM);
       const hours = Math.floor(diff / 60);
@@ -1527,24 +1519,23 @@ export default function App() {
                   }
                 />
 
-                {/* Krzywa temperatury (yr.no / Apple style) */}
-                {(() => {
-                  const nowH = new Date().getHours();
-                  const pts = weather.hourly.map(h => {
-                    const hH = parseInt(h.time.split(':')[0]);
-                    return {
-                      label: h.time.split(':')[0],
-                      temp: parseInt(h.temp.replace('°', '')) || 0,
-                      isNow: hH <= nowH && hH + 3 > nowH,
-                    };
-                  });
-                  return <TempCurve points={pts} width={Dimensions.get('window').width - 56} />;
-                })()}
-
+                {/* Krzywa temperatury + kafelki - oba w JEDNYM ScrollView aby się przesuwały razem */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ width: weather.hourly.length * 60, paddingRight: 16 }}>
+                    {(() => {
+                      const nowH = new Date().getHours();
+                      const pts = weather.hourly.map(h => {
+                        const hH = parseInt(h.time.split(':')[0]);
+                        return {
+                          label: h.time.split(':')[0],
+                          temp: parseInt(h.temp.replace('°', '')) || 0,
+                          isNow: hH <= nowH && hH + 3 > nowH,
+                        };
+                      });
+                      return <TempCurve points={pts} width={weather.hourly.length * 60} />;
+                    })()}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
                     {weather.hourly.map((h, i) => {
-                      if (i <= 5) console.log(`UI RENDER hourly[${i}]:`, h.time, 'hHour calc:', h.time.split(':')[0]);
                       const now = new Date().getHours();
                       const hHour = parseInt(h.time.split(':')[0]);
                       const isPast = hHour < now;
@@ -1573,6 +1564,7 @@ export default function App() {
                         </View>
                       );
                     })}
+                    </View>
                   </View>
                 </ScrollView>
               </View>
