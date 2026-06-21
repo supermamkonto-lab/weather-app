@@ -642,11 +642,7 @@ export default function App() {
           // Hourly - map to wttr.in-like structure (current day only = first 24h)
           if (data.hourly) {
             const hourlyData = data.hourly;
-            console.log('DEBUG hourlyData.time[0]:', hourlyData.time[0]);
-            console.log('DEBUG hourlyData.time[0].slice(-5):', hourlyData.time[0]?.slice(-5));
-            console.log('DEBUG hourlyData.time length:', hourlyData.time?.length);
             todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => {
-              if (idx === 0) console.log('DEBUG map time[0]:', time, 'slice(-5):', time.slice(-5));
               return {
                 time: time.slice(-5),
                 tempC: hourlyData.temperature_2m[idx],
