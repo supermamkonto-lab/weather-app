@@ -1663,33 +1663,11 @@ export default function App() {
                 </View>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>Wschód słońca</Text>
-                  <Text style={styles.detailGridValue}>{(() => {
-                    const t = weather.sunrise;
-                    if (!t || t === 'N/A') return 'N/A';
-                    const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-                    if (!match) return t;
-                    let h = parseInt(match[1]);
-                    const m = match[2];
-                    const ampm = match[3].toUpperCase();
-                    if (ampm === 'PM' && h !== 12) h += 12;
-                    if (ampm === 'AM' && h === 12) h = 0;
-                    return `${h.toString().padStart(2,'0')}:${m}`;
-                  })()}</Text>
+                  <Text style={styles.detailGridValue}>{weather.sunrise || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>Zachód słońca</Text>
-                  <Text style={styles.detailGridValue}>{(() => {
-                    const t = weather.sunset;
-                    if (!t || t === 'N/A') return 'N/A';
-                    const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-                    if (!match) return t;
-                    let h = parseInt(match[1]);
-                    const m = match[2];
-                    const ampm = match[3].toUpperCase();
-                    if (ampm === 'PM' && h !== 12) h += 12;
-                    if (ampm === 'AM' && h === 12) h = 0;
-                    return `${h.toString().padStart(2,'0')}:${m}`;
-                  })()}</Text>
+                  <Text style={styles.detailGridValue}>{weather.sunset || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>PM2.5 — pyły drobne</Text>
