@@ -560,7 +560,7 @@ export default function App() {
 
       const current = wttrResponse.data.current_condition[0];
       const location = wttrResponse.data.nearest_area[0];
-      const forecastDays = wttrResponse.data.weather?.slice(1, 4) || [];
+      const forecastDays = wttrResponse.data.weather?.slice(1, 6) || [];
       const todayHourly = wttrResponse.data.weather?.[0]?.hourly || [];
       const astronomy = wttrResponse.data.weather?.[0]?.astronomy?.[0];
       const lat = location.latitude;
@@ -1474,7 +1474,7 @@ export default function App() {
               </View>
             )}
 
-            {/* PROGNOZA 3-DNIOWA — inline (premium) */}
+            {/* PROGNOZA 5-DNIOWA — grid 2 kolumny (premium) */}
             {weather.forecast && weather.forecast.length > 0 && (
               <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
                 <SectionHeader
@@ -1486,25 +1486,34 @@ export default function App() {
                     </TouchableOpacity>
                   }
                 />
-                {weather.forecast.map((day, i) => {
-                  const dayDate = new Date(day.date);
-                  const dayName = i === 0 ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'long' });
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: i < weather.forecast.length - 1 ? 1 : 0, borderBottomColor: '#f0f0f0' }}
-                      onPress={() => setSelectedDay(day)}
-                    >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#333', width: 90, textTransform: 'capitalize' }}>{dayName}</Text>
-                      <View style={{ width: 40, alignItems: 'center' }}>
-                        <WeatherIcon desc={day.description} size={32} />
-                      </View>
-                      <Text style={{ fontSize: 12, color: '#777', flex: 1 }} numberOfLines={1}>{day.description}</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#f44336' }}>{day.maxTemp.replace('°C', '°')}</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#1e90ff', marginLeft: 6 }}>{day.minTemp.replace('°C', '°')}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
+                  {weather.forecast.map((day, i) => {
+                    const dayDate = new Date(day.date);
+                    const dayName = i === 0 ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'short' });
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={{ width: '48%', backgroundColor: '#f8f9fb', borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#f0f0f0' }}
+                        onPress={() => setSelectedDay(day)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#9aa5b1', letterSpacing: 0.3, marginBottom: 8 }}>
+                          {dayName}
+                        </Text>
+                        <WeatherIcon desc={day.description} size={36} />
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#f44336', marginTop: 10 }}>
+                          {day.maxTemp.replace('°C', '°')}
+                        </Text>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#1e90ff' }}>
+                          {day.minTemp.replace('°C', '°')}
+                        </Text>
+                        <Text style={{ fontSize: 10, color: '#999', marginTop: 8, textAlign: 'center' }}>
+                          {day.description.substring(0, 10)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             )}
 
