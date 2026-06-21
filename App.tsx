@@ -11,9 +11,18 @@ import {
   Modal,
   Alert,
   RefreshControl,
+  Share,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { WebView } from 'react-native-webview';
+import ViewShot, { captureRef } from 'react-native-view-shot';
+import LinearGradient from 'react-native-linear-gradient';
+import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
+import { NativeModules } from 'react-native';
+const { WidgetModule } = NativeModules;
 
 interface Weather {
   temp: string;
@@ -24,6 +33,7 @@ interface Weather {
   windSpeed: string;
   icon: string;
   forecast: ForecastDay[];
+  hourly: HourlyData[];
   pressure: string;
   visibility: string;
   uvIndex: string;
@@ -49,41 +59,176 @@ interface ForecastDay {
   icon: string;
 }
 
+interface HourlyData {
+  time: string;
+  temp: string;
+  feelsLike: string;
+  icon: string;
+  rainChance: number;
+  windKmph: number;
+  uvIndex: number;
+  comfort: number;
+}
+
+interface HistoryEntry {
+  timestamp: string;
+  city: string;
+  temp: string;
+  aqi: string;
+  aqiColor: string;
+  description: string;
+  comfort: number;
+}
+
 const WEATHER_TRANSLATIONS: { [key: string]: string } = {
   'sunny': 'Słonecznie',
   'clear': 'Czyste niebo',
   'partly cloudy': 'Częściowo pochmurnie',
   'cloudy': 'Pochmurnie',
-  'overcast': 'Całkowicie pochmurnie',
-  'light rain': 'Lekki deszcz',
-  'patchy light rain': 'Przerywany lekki deszcz',
-  'moderate rain': 'Umiarkowany deszcz',
-  'heavy rain': 'Intensywny deszcz',
-  'patchy rain nearby': 'Przerywany deszcz w pobliżu',
-  'thundery outbreaks possible': 'Możliwe wyładowania burzowe',
-  'patchy light snow': 'Przerywany lekki śnieg',
-  'light snow': 'Lekki śnieg',
-  'heavy snow': 'Intensywny śnieg',
-  'fog': 'Mgła',
+  'overcast': 'Zachmurzenie całkowite',
   'mist': 'Mgła',
-  'windy': 'Wietrzny',
+  'patchy rain possible': 'Możliwy przelotny deszcz',
+  'patchy rain nearby': 'Przelotny deszcz w pobliżu',
+  'patchy snow possible': 'Możliwy przelotny śnieg',
+  'patchy sleet possible': 'Możliwy deszcz ze śniegiem',
+  'patchy freezing drizzle possible': 'Możliwa marznąca mżawka',
+  'thundery outbreaks possible': 'Możliwe burze',
+  'thundery outbreaks in nearby': 'Burze w pobliżu',
+  'blowing snow': 'Zamieć śnieżna',
+  'blizzard': 'Śnieżyca',
+  'fog': 'Mgła',
+  'freezing fog': 'Marznąca mgła',
+  'patchy light drizzle': 'Lekka przelotna mżawka',
+  'light drizzle': 'Lekka mżawka',
+  'freezing drizzle': 'Marznąca mżawka',
+  'heavy freezing drizzle': 'Silna marznąca mżawka',
+  'patchy light rain': 'Przelotny lekki deszcz',
+  'light rain': 'Lekki deszcz',
+  'moderate rain at times': 'Okresami umiarkowany deszcz',
+  'moderate rain': 'Umiarkowany deszcz',
+  'heavy rain at times': 'Okresami silny deszcz',
+  'heavy rain': 'Silny deszcz',
+  'light freezing rain': 'Lekki marznący deszcz',
+  'moderate or heavy freezing rain': 'Marznący deszcz',
+  'light sleet': 'Lekki deszcz ze śniegiem',
+  'moderate or heavy sleet': 'Deszcz ze śniegiem',
+  'patchy light snow': 'Przelotny lekki śnieg',
+  'light snow': 'Lekki śnieg',
+  'patchy moderate snow': 'Przelotny umiarkowany śnieg',
+  'moderate snow': 'Umiarkowany śnieg',
+  'patchy heavy snow': 'Przelotny silny śnieg',
+  'heavy snow': 'Intensywny śnieg',
+  'ice pellets': 'Grad',
+  'light rain shower': 'Przelotny lekki deszcz',
+  'moderate or heavy rain shower': 'Przelotny silny deszcz',
+  'torrential rain shower': 'Ulewa',
+  'light sleet showers': 'Przelotny deszcz ze śniegiem',
+  'moderate or heavy sleet showers': 'Silny deszcz ze śniegiem',
+  'light snow showers': 'Przelotny lekki śnieg',
+  'moderate or heavy snow showers': 'Przelotny silny śnieg',
+  'light showers of ice pellets': 'Lekki grad',
+  'moderate or heavy showers of ice pellets': 'Silny grad',
+  'patchy light rain in area with thunder': 'Lekki deszcz z burzą',
+  'moderate or heavy rain in area with thunder': 'Silny deszcz z burzą',
+  'patchy light snow in area with thunder': 'Lekki śnieg z burzą',
+  'moderate or heavy snow in area with thunder': 'Silny śnieg z burzą',
+  'windy': 'Wietrznie',
+};
+
+// ===== KOMPLETNA MAPA KODÓW POGODY WWO → POLSKI =====
+// wttr.in używa kodów WWO (weatherCode). Klucz numeryczny jest stabilny
+// niezależnie od języka API — gwarantuje 100% polskich opisów.
+const WWO_CODE_PL: { [code: string]: string } = {
+  '113': 'Bezchmurnie',
+  '116': 'Częściowe zachmurzenie',
+  '119': 'Zachmurzenie',
+  '122': 'Całkowite zachmurzenie',
+  '143': 'Zamglenie',
+  '176': 'Możliwe przelotne opady',
+  '179': 'Możliwe przelotne opady śniegu',
+  '182': 'Możliwy deszcz ze śniegiem',
+  '185': 'Możliwa marznąca mżawka',
+  '200': 'Możliwe burze w okolicy',
+  '227': 'Zamieć śnieżna',
+  '230': 'Śnieżyca',
+  '248': 'Mgła',
+  '260': 'Marznąca mgła',
+  '263': 'Słaba przelotna mżawka',
+  '266': 'Słaba mżawka',
+  '281': 'Marznąca mżawka',
+  '284': 'Silna marznąca mżawka',
+  '293': 'Słabe przelotne opady',
+  '296': 'Słaby deszcz',
+  '299': 'Okresami umiarkowany deszcz',
+  '302': 'Umiarkowany deszcz',
+  '305': 'Okresami intensywny deszcz',
+  '308': 'Intensywne opady deszczu',
+  '311': 'Słaby marznący deszcz',
+  '314': 'Marznący deszcz',
+  '317': 'Słaby deszcz ze śniegiem',
+  '320': 'Deszcz ze śniegiem',
+  '323': 'Słabe przelotne opady śniegu',
+  '326': 'Słaby śnieg',
+  '329': 'Okresami umiarkowany śnieg',
+  '332': 'Umiarkowany śnieg',
+  '335': 'Okresami intensywny śnieg',
+  '338': 'Intensywne opady śniegu',
+  '350': 'Grad',
+  '353': 'Przelotny słaby deszcz',
+  '356': 'Przelotny intensywny deszcz',
+  '359': 'Ulewa',
+  '362': 'Przelotny deszcz ze śniegiem',
+  '365': 'Przelotny intensywny deszcz ze śniegiem',
+  '368': 'Przelotny słaby śnieg',
+  '371': 'Przelotny intensywny śnieg',
+  '374': 'Przelotny słaby grad',
+  '377': 'Przelotny grad',
+  '386': 'Słaby deszcz z burzą',
+  '389': 'Intensywny deszcz z burzą',
+  '392': 'Słaby śnieg z burzą',
+  '395': 'Intensywny śnieg z burzą',
 };
 
 const translateWeather = (desc: string): string => {
-  const lower = desc.toLowerCase();
+  const lower = (desc || '').toLowerCase().trim();
   return WEATHER_TRANSLATIONS[lower] || desc;
 };
 
+// Tłumaczenie opisu pogody — priorytet: kod WWO (bulletproof) → słownik tekstowy
+// Użytkownik NIGDY nie widzi angielskiego opisu z API.
+const getPolishDesc = (item: any): string => {
+  const code = (item?.weatherCode || '').toString().trim();
+  if (code && WWO_CODE_PL[code]) return WWO_CODE_PL[code];
+  const en = (item?.weatherDesc?.[0]?.value || '').trim();
+  return translateWeather(en);
+};
+
 const getWeatherIcon = (desc: string): string => {
-  const lowerDesc = desc.toLowerCase();
-  if (lowerDesc.includes('sunny') || lowerDesc.includes('clear')) return '☀️';
-  if (lowerDesc.includes('cloud')) return '☁️';
-  if (lowerDesc.includes('rain')) return '🌧️';
-  if (lowerDesc.includes('snow')) return '❄️';
-  if (lowerDesc.includes('storm') || lowerDesc.includes('thunder')) return '⛈️';
-  if (lowerDesc.includes('fog') || lowerDesc.includes('mist')) return '🌫️';
-  if (lowerDesc.includes('wind')) return '💨';
+  const lowerDesc = (desc || '').toLowerCase();
+  if (lowerDesc.includes('storm') || lowerDesc.includes('thunder') || lowerDesc.includes('burz')) return '⛈️';
+  if (lowerDesc.includes('bezchmur') || lowerDesc.includes('sunny') || lowerDesc.includes('clear') || lowerDesc.includes('słonecz') || lowerDesc.includes('pogodnie')) return '☀️';
+  if (lowerDesc.includes('snow') || lowerDesc.includes('śnieg') || lowerDesc.includes('zamieć') || lowerDesc.includes('śnieżyca')) return '❄️';
+  if (lowerDesc.includes('rain') || lowerDesc.includes('deszcz') || lowerDesc.includes('mżaw') || lowerDesc.includes('drizzle') || lowerDesc.includes('ulewa')) return '🌧️';
+  if (lowerDesc.includes('fog') || lowerDesc.includes('mist') || lowerDesc.includes('mgł') || lowerDesc.includes('zamgl')) return '🌫️';
+  if (lowerDesc.includes('cloud') || lowerDesc.includes('chmur') || lowerDesc.includes('zachmurz') || lowerDesc.includes('overcast')) return '☁️';
+  if (lowerDesc.includes('wind') || lowerDesc.includes('wietrz')) return '💨';
   return '🌤️';
+};
+
+// Ikona świadoma pory dnia — księżyc w nocy (Apple Weather class)
+const getWeatherIconTime = (desc: string, isNight: boolean): string => {
+  const d = (desc || '').toLowerCase();
+  const isClear = d.includes('bezchmur') || d.includes('sunny') || d.includes('clear') || d.includes('słonecz') || d.includes('pogodnie');
+  const isStorm = d.includes('storm') || d.includes('thunder') || d.includes('burz');
+  const isCloud = !isClear && (d.includes('cloud') || d.includes('chmur') || d.includes('zachmurz') || d.includes('overcast'));
+  if (!isNight) return getWeatherIcon(desc);
+  if (isStorm) return '⛈️';
+  if (isClear) return '🌙';
+  if (d.includes('rain') || d.includes('deszcz') || d.includes('mżaw') || d.includes('ulewa')) return '🌧️';
+  if (d.includes('snow') || d.includes('śnieg')) return '❄️';
+  if (d.includes('fog') || d.includes('mgł')) return '🌫️';
+  if (isCloud) return '☁️';
+  return '🌙';
 };
 
 const getAQIColor = (aqi: string): { color: string; emoji: string; text: string } => {
@@ -94,6 +239,122 @@ const getAQIColor = (aqi: string): { color: string; emoji: string; text: string 
   if (lower.includes('zła') || lower.includes('niezdrowa')) return { color: '#F44336', emoji: '🔴', text: 'Zła' };
   if (lower.includes('bardzo')) return { color: '#1a1a1a', emoji: '⚫', text: 'Bardzo zła' };
   return { color: '#666', emoji: '⚪', text: 'Brak danych' };
+};
+
+const calcHourlyComfort = (tempC: number, rainChance: number, windKmph: number, uvIndex: number): number => {
+  let score = 100;
+  const t = tempC;
+  if (t < 0) score -= 40;
+  else if (t < 5) score -= 25;
+  else if (t < 10) score -= 12;
+  else if (t < 15) score -= 5;
+  else if (t >= 15 && t <= 24) score += 0;
+  else if (t <= 30) score -= 8;
+  else score -= 20;
+  score -= Math.round(rainChance * 0.5);
+  if (windKmph > 40) score -= 20;
+  else if (windKmph > 25) score -= 10;
+  if (uvIndex >= 8) score -= 15;
+  else if (uvIndex >= 6) score -= 7;
+  return Math.max(0, Math.min(100, score));
+};
+
+const getSportRecommendation = (weather: Weather): { verdict: string; emoji: string; color: string; details: string[] } => {
+  const tempC = typeof weather.tempC === 'number' ? weather.tempC : parseFloat(weather.temp);
+  const wind = typeof weather.windKmph === 'number' ? weather.windKmph : parseFloat(weather.windSpeed);
+  const desc = weather.description.toLowerCase();
+  const aqi = weather.aqi.toLowerCase();
+  const issues: string[] = [];
+  let score = 4;
+  if (desc.includes('deszcz') || desc.includes('rain')) { score--; issues.push('🌧️ Deszcz — mokra nawierzchnia'); }
+  if (desc.includes('burza') || desc.includes('thunder')) { score -= 2; issues.push('⛈️ Burza — niebezpieczne warunki'); }
+  if (desc.includes('śnieg') || desc.includes('snow')) { score--; issues.push('❄️ Opady śniegu'); }
+  if (wind > 35) { score--; issues.push(`💨 Silny wiatr ${Math.round(wind)} km/h`); }
+  if (tempC < 0) { score--; issues.push(`🥶 Mróz ${Math.round(tempC)}°C — rowerem ryzykownie`); }
+  if (tempC > 35) { score--; issues.push(`🥵 Upał ${Math.round(tempC)}°C — ryzyko przegrzania`); }
+  if (aqi.includes('zła') || aqi.includes('bardzo')) { score--; issues.push('😷 Zła jakość powietrza'); }
+  if (score >= 4) return { verdict: 'IDEALNE warunki', emoji: '🚴', color: '#4caf50', details: ['Temperatura OK', 'Wiatr słaby', 'Brak opadów', 'Powietrze czyste'] };
+  if (score === 3) return { verdict: 'DOBRE warunki', emoji: '✅', color: '#8bc34a', details: issues.length ? issues : ['Ogólnie OK'] };
+  if (score === 2) return { verdict: 'MOŻLIWE z zastrzeżeniami', emoji: '⚠️', color: '#ff9800', details: issues };
+  return { verdict: 'NIEZALECANE', emoji: '❌', color: '#f44336', details: issues };
+};
+
+// ===== DYNAMICZNE NIEBO — silnik motywu wizualnego (Apple Weather class) =====
+interface SkyTheme {
+  colors: string[];
+  accent: string;
+  night: boolean;
+  label: string;
+}
+
+const getSkyTheme = (description: string, hour: number, sunriseH: number = 5, sunsetH: number = 21): SkyTheme => {
+  const d = (description || '').toLowerCase();
+  const isNight = hour < sunriseH || hour >= sunsetH;
+  const isDawn = !isNight && hour < sunriseH + 2;
+  const isDusk = !isNight && hour >= sunsetH - 2;
+
+  const isStorm = d.includes('burza') || d.includes('storm') || d.includes('thunder') || d.includes('wyładowania');
+  const isRain = !isStorm && (d.includes('deszcz') || d.includes('rain') || d.includes('mżawka') || d.includes('drizzle') || d.includes('opady'));
+  const isSnow = d.includes('śnieg') || d.includes('snow') || d.includes('zamieć');
+  const isFog = d.includes('mgła') || d.includes('fog') || d.includes('mist') || d.includes('zamglenie');
+  const isClear = d.includes('bezchmur') || d.includes('słonecz') || d.includes('pogodnie') || d.includes('clear') || d.includes('sunny') || d.includes('czyste');
+  const isCloud = !isClear && (d.includes('chmur') || d.includes('cloud') || d.includes('pochmurn') || d.includes('overcast') || d.includes('zachmurz'));
+
+  // Zjawiska ekstremalne nadpisują porę dnia
+  if (isStorm) return { colors: ['#1f2733', '#3a4654', '#10151c'], accent: '#ffd54f', night: true, label: 'Burza' };
+  if (isSnow) return isNight
+    ? { colors: ['#2c3a4a', '#46596b', '#1e2935'], accent: '#e3f2fd', night: true, label: 'Śnieg' }
+    : { colors: ['#8fa6bd', '#c3d4e3', '#a7bccf'], accent: '#1565c0', night: false, label: 'Śnieg' };
+  if (isRain) return isNight
+    ? { colors: ['#1a2530', '#2b3b4a', '#141c24'], accent: '#64b5f6', night: true, label: 'Deszcz' }
+    : { colors: ['#52677a', '#7c93a6', '#5e7384'], accent: '#bbdefb', night: false, label: 'Deszcz' };
+  if (isFog) return isNight
+    ? { colors: ['#2b333b', '#454f59', '#1f262d'], accent: '#cfd8dc', night: true, label: 'Mgła' }
+    : { colors: ['#9aa7b0', '#c4ced4', '#aeb9c0'], accent: '#546e7a', night: false, label: 'Mgła' };
+
+  // Pogodnie / lekkie chmury — pełna gama pory dnia
+  if (isNight) return { colors: ['#0b1a3a', '#1a2f5a', '#060d22'], accent: '#7c4dff', night: true, label: isCloud ? 'Pochmurna noc' : 'Czysta noc' };
+  if (isDawn) return { colors: ['#ff9a76', '#ffd194', '#a1c4fd'], accent: '#e65100', night: false, label: 'Świt' };
+  if (isDusk) return { colors: ['#ff7e5f', '#feb47b', '#6a4d8c'], accent: '#bf360c', night: false, label: 'Zmierzch' };
+  if (isCloud) return { colors: ['#6e8aa6', '#9bb4cc', '#7e98b3'], accent: '#1565c0', night: false, label: 'Pochmurno' };
+  // Słoneczny dzień
+  return { colors: ['#2196f3', '#64b5f6', '#90caf9'], accent: '#0d47a1', night: false, label: 'Słonecznie' };
+};
+
+const parseHourFromTime = (t: string): number => {
+  if (!t || t === 'N/A') return -1;
+  const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return -1;
+  let h = parseInt(m[1]);
+  const ampm = m[3].toUpperCase();
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h;
+};
+
+// Tłumaczenie nazw państw zwracanych przez API na polski (u źródła)
+const COUNTRY_PL: { [key: string]: string } = {
+  'poland': 'Polska', 'germany': 'Niemcy', 'czech republic': 'Czechy', 'czechia': 'Czechy',
+  'france': 'Francja', 'slovakia': 'Słowacja', 'ukraine': 'Ukraina', 'austria': 'Austria',
+  'hungary': 'Węgry', 'united kingdom': 'Wielka Brytania', 'italy': 'Włochy', 'spain': 'Hiszpania',
+  'united states': 'Stany Zjednoczone', 'netherlands': 'Holandia', 'belgium': 'Belgia',
+  'switzerland': 'Szwajcaria', 'sweden': 'Szwecja', 'norway': 'Norwegia', 'denmark': 'Dania',
+  'lithuania': 'Litwa', 'belarus': 'Białoruś', 'russia': 'Rosja', 'croatia': 'Chorwacja',
+  'portugal': 'Portugalia', 'ireland': 'Irlandia', 'greece': 'Grecja', 'romania': 'Rumunia',
+};
+const translateCountry = (country: string): string => {
+  return COUNTRY_PL[(country || '').toLowerCase().trim()] || country;
+};
+
+// Formatuje datę ISO (2026-06-22) na naturalny polski zapis
+const formatPolishDate = (isoDate: string): string => {
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  } catch {
+    return isoDate;
+  }
 };
 
 const calculateFeelsLike = (tempC: number, humidity: number, windKmph: number): string => {
@@ -123,8 +384,22 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAQIModal, setShowAQIModal] = useState(false);
   const [showForecastModal, setShowForecastModal] = useState(false);
+  const [showICMModal, setShowICMModal] = useState(false);
+  const [showICMInterpretation, setShowICMInterpretation] = useState(false);
+  const [favoritesWeather, setFavoritesWeather] = useState<Record<string, {temp: string, aqiColor: string}>>({});
+  const [weatherHistory, setWeatherHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonData, setComparisonData] = useState<Record<string, any>>({});
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [showSportModal, setShowSportModal] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const weatherCardRef = React.useRef<View>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [cachedWeather, setCachedWeather] = useState<Weather | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [dataTimestamp, setDataTimestamp] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -132,8 +407,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadFavoritesFromStorage();
-    fetchWeather();
+    (async () => {
+      // KROK 1: załaduj cache PRZED fetchem — gwarantuje dane offline przy zimnym starcie
+      await loadFavoritesFromStorage();
+      // KROK 2: spróbuj odświeżyć (nadpisze cache jeśli online, zostawi cache jeśli offline)
+      fetchWeather();
+      fetchFavoritesData(['Częstochowa', 'Warszawa', 'Kraków']);
+      loadHistoryFromStorage();
+      setupNotifee().then(ok => {
+        setNotificationsEnabled(ok);
+        if (ok) scheduleDailyReport(7);
+      });
+    })();
   }, []);
 
   const loadFavoritesFromStorage = async () => {
@@ -141,7 +426,16 @@ export default function App() {
       const saved = await AsyncStorage.getItem('favorites');
       if (saved) setFavorites(JSON.parse(saved));
       const cached = await AsyncStorage.getItem('cachedWeather');
-      if (cached) setCachedWeather(JSON.parse(cached));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const w: Weather | null = parsed?.data || (parsed?.temp ? parsed : null);
+        if (w) {
+          setCachedWeather(w);
+          // Pokaż natychmiast ostatnie dane jeśli ekran jeszcze pusty (offline cold start)
+          setWeather(prev => prev || w);
+          if (parsed?.timestamp) setDataTimestamp(parsed.timestamp);
+        }
+      }
     } catch (e) {
       console.log('AsyncStorage load error');
     }
@@ -199,9 +493,11 @@ export default function App() {
 
     try {
       // Parallel API calls for faster loading
+      // Cache-bust + no-store: gwarantuje świeże dane online, a offline pewny błąd
+      // (bez tego OkHttp serwuje starą odpowiedź offline i maskuje brak sieci)
       const wttrPromise = axios.get(
-        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
-        { timeout: 10000 }
+        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl&_=${Date.now()}`,
+        { timeout: 10000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
       );
 
       let aqiResponse: any = null;
@@ -215,6 +511,7 @@ export default function App() {
       const current = wttrResponse.data.current_condition[0];
       const location = wttrResponse.data.nearest_area[0];
       const forecastDays = wttrResponse.data.weather?.slice(1, 4) || [];
+      const todayHourly = wttrResponse.data.weather?.[0]?.hourly || [];
       const astronomy = wttrResponse.data.weather?.[0]?.astronomy?.[0];
       const lat = location.latitude;
       const lon = location.longitude;
@@ -272,30 +569,56 @@ export default function App() {
       const tempC = current.temp_C;
       const windKmph = current.windspeedKmph;
       const humidity = current.humidity;
-      const feelsLikeTemp = calculateFeelsLike(tempC, humidity, windKmph);
+      const feelsLikeTemp = current.FeelsLikeC !== undefined ? String(current.FeelsLikeC) : calculateFeelsLike(tempC, humidity, windKmph);
       const now = new Date();
       const lastUpdate = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+
+      const sunriseHour = parseHourFromTime(astronomy?.sunrise || '');
+      const sunsetHour = parseHourFromTime(astronomy?.sunset || '');
+      const srH = sunriseHour >= 0 ? sunriseHour : 5;
+      const ssH = sunsetHour >= 0 ? sunsetHour : 21;
+
+      const hourly: HourlyData[] = todayHourly.map((h: any) => {
+        const hTemp = parseFloat(h.tempC || 0);
+        const hRain = parseInt(h.chanceofrain || 0);
+        const hWind = parseFloat(h.windspeedKmph || 0);
+        const hUV = parseInt(h.uvIndex || 0);
+        const rawTime = parseInt(h.time || 0);
+        const hh = Math.floor(rawTime / 100);
+        const hNight = hh < srH || hh >= ssH;
+        return {
+          time: `${hh.toString().padStart(2, '0')}:00`,
+          temp: `${Math.round(hTemp)}°`,
+          feelsLike: `${h.FeelsLikeC || Math.round(hTemp)}°`,
+          icon: getWeatherIconTime(getPolishDesc(h), hNight),
+          rainChance: hRain,
+          windKmph: hWind,
+          uvIndex: hUV,
+          comfort: calcHourlyComfort(hTemp, hRain, hWind, hUV),
+        };
+      });
 
       const forecast = forecastDays.map((day: any) => ({
         date: day.date,
         maxTemp: `${day.maxtempC}°C`,
         minTemp: `${day.mintempC}°C`,
-        description: day.hourly[4]?.weatherDesc[0]?.value || 'Brak danych',
-        icon: getWeatherIcon(day.hourly[4]?.weatherDesc[0]?.value || ''),
+        description: getPolishDesc(day.hourly?.[4]) || 'Brak danych',
+        icon: getWeatherIcon(day.hourly?.[4]?.weatherDesc?.[0]?.value || ''),
       }));
 
       const weatherData = {
         temp: `${tempC}°C`,
-        description: translateWeather(current.weatherDesc[0].value),
-        location: `${location.areaName[0].value}, ${location.country[0].value}`,
+        description: getPolishDesc(current),
+        location: `${cityName.trim()}, ${translateCountry(location.country[0].value)}`,
         feelsLike: `${feelsLikeTemp}°C`,
         humidity: `${humidity}%`,
         windSpeed: `${windKmph} km/h`,
         icon: getWeatherIcon(current.weatherDesc[0].value),
         forecast,
-        pressure: `${current.pressure_mb || current.pressure || 'N/A'} mb`,
-        visibility: `${current.visibility_km || current.visibility || 'N/A'} km`,
-        uvIndex: `${current.uv_index || current.uvIndex || 'N/A'}`,
+        hourly,
+        pressure: `${current.pressure_mb || current.pressure || '—'} mb`,
+        visibility: `${current.visibility_km || current.visibility || '—'} km`,
+        uvIndex: `${current.uv_index || current.uvIndex || '—'}`,
         sunrise: astronomy.sunrise,
         sunset: astronomy.sunset,
         pm25,
@@ -311,18 +634,203 @@ export default function App() {
       };
       setWeather(weatherData);
       cacheWeatherData(weatherData);
+      setIsOffline(false);
+      setError('');
+      setDataTimestamp(Date.now());
       setCity(cityName);
+      setFavoritesWeather(prev => ({
+        ...prev,
+        [cityName.trim()]: { temp: `${tempC}°`, aqiColor },
+      }));
+      try {
+        WidgetModule?.updateWidget({
+          city: cityName.trim(),
+          temp: `${tempC}°C`,
+          aqi,
+          aqiColor,
+          icon: getWeatherIcon(current.weatherDesc[0].value),
+          lastUpdate: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+        });
+      } catch {}
+      sendAQIAlert(aqi, cityName.trim(), aqiColor).catch(() => {});
+      sendStormAlert(getPolishDesc(current), cityName.trim()).catch(() => {});
+      const polishDesc = getPolishDesc(current);
+      const histEntry: HistoryEntry = {
+        timestamp: new Date().toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        city: cityName.trim(),
+        temp: `${tempC}°C`,
+        aqi,
+        aqiColor,
+        description: polishDesc,
+        comfort: calculateWeatherScore({ aqi, aqiColor, tempC, windKmph: parseFloat(windKmph), description: polishDesc } as any),
+      };
+      saveHistoryEntry(histEntry);
     } catch (err) {
-      if (cachedWeather) {
-        setWeather(cachedWeather);
-        setError('📡 Bez internetu - pokazuję ostatnie dane');
+      // Odczytaj cache bezpośrednio z dysku (pewniejsze niż stan przy zimnym starcie)
+      let cachedRaw: string | null = null;
+      try { cachedRaw = await AsyncStorage.getItem('cachedWeather'); } catch {}
+      let fallback: Weather | null = null;
+      let fallbackTs: number | null = null;
+      if (cachedRaw) {
+        try {
+          const parsed = JSON.parse(cachedRaw);
+          fallback = parsed?.data || (parsed?.temp ? parsed : null);
+          fallbackTs = parsed?.timestamp || null;
+        } catch {}
+      }
+      if (fallback) {
+        // Mamy zapisane dane — pokaż je z banerem offline (NIE wygląda na uszkodzoną)
+        setWeather(fallback);
+        setCachedWeather(fallback);
+        if (fallbackTs) setDataTimestamp(fallbackTs);
+        setIsOffline(true);
+        setError('');
       } else {
-        setError('Nie znaleziono miasta');
-        setWeather(null);
+        // Brak internetu i brak jakichkolwiek zapisanych danych
+        setIsOffline(true);
+        setError('Brak połączenia z internetem i brak zapisanych danych.');
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchFavoritesData = async (cityList: string[]) => {
+    const results: Record<string, {temp: string, aqiColor: string}> = {};
+    await Promise.all(cityList.map(async (favCity) => {
+      try {
+        const res = await axios.get(
+          `https://wttr.in/${encodeURIComponent(favCity)}?format=j1&lang=pl`,
+          { timeout: 6000 }
+        );
+        const curr = res.data?.current_condition?.[0];
+        const loc = res.data?.nearest_area?.[0];
+        if (!curr || !loc) return;
+        const temp = `${curr.temp_C}°`;
+        let aqiColor = '#999';
+        try {
+          const aqiRes: any = await Promise.race([
+            axios.get(
+              `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.latitude}&longitude=${loc.longitude}&current=us_aqi`,
+              { timeout: 2000 }
+            ),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000)),
+          ]);
+          const usAqi = aqiRes?.data?.current?.us_aqi;
+          if (usAqi !== null && usAqi !== undefined) {
+            const info = getAQIColor(
+              usAqi <= 50 ? 'Dobra' :
+              usAqi <= 100 ? 'Umiarkowana' :
+              usAqi <= 150 ? 'Niezdrowa dla wrażliwych' :
+              usAqi <= 200 ? 'Zła' :
+              usAqi <= 300 ? 'Bardzo zła' : 'Niebezpieczna'
+            );
+            aqiColor = info.color;
+          }
+        } catch {}
+        results[favCity] = { temp, aqiColor };
+      } catch {}
+    }));
+    setFavoritesWeather(prev => ({ ...prev, ...results }));
+  };
+
+  const loadHistoryFromStorage = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('weatherHistory');
+      if (saved) setWeatherHistory(JSON.parse(saved));
+    } catch {}
+  };
+
+  const saveHistoryEntry = async (entry: HistoryEntry) => {
+    try {
+      const saved = await AsyncStorage.getItem('weatherHistory');
+      const existing: HistoryEntry[] = saved ? JSON.parse(saved) : [];
+      const updated = [entry, ...existing].slice(0, 50);
+      await AsyncStorage.setItem('weatherHistory', JSON.stringify(updated));
+      setWeatherHistory(updated);
+    } catch {}
+  };
+
+  const fetchComparisonData = async () => {
+    setComparisonLoading(true);
+    const cities = ['Częstochowa', 'Warszawa', 'Kraków', 'Wrocław', 'Gdańsk', 'Zakopane'];
+    const results: Record<string, any> = {};
+    await Promise.all(cities.map(async (c) => {
+      try {
+        const res = await axios.get(`https://wttr.in/${encodeURIComponent(c)}?format=j1&lang=pl`, { timeout: 8000 });
+        const curr = res.data?.current_condition?.[0];
+        const loc = res.data?.nearest_area?.[0];
+        if (!curr || !loc) return;
+        let aqiColor = '#999'; let aqiLabel = 'Brak';
+        try {
+          const ar: any = await Promise.race([
+            axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.latitude}&longitude=${loc.longitude}&current=us_aqi`, { timeout: 2000 }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 2000)),
+          ]);
+          const v = ar?.data?.current?.us_aqi;
+          if (v !== null && v !== undefined) {
+            aqiLabel = v <= 50 ? 'Dobra' : v <= 100 ? 'Umiarkowana' : v <= 150 ? 'Niezdr.' : 'Zła';
+            aqiColor = getAQIColor(v <= 50 ? 'Dobra' : v <= 100 ? 'Umiarkowana' : v <= 150 ? 'Niezdrowa dla wrażliwych' : 'Zła').color;
+          }
+        } catch {}
+        const desc = curr.weatherDesc?.[0]?.value || '';
+        results[c] = {
+          temp: `${curr.temp_C}°C`,
+          feelsLike: `${curr.FeelsLikeC}°C`,
+          desc: getPolishDesc(curr),
+          icon: getWeatherIcon(desc),
+          wind: `${curr.windspeedKmph} km/h`,
+          humidity: `${curr.humidity}%`,
+          aqiColor,
+          aqiLabel,
+          comfort: calcHourlyComfort(parseFloat(curr.temp_C), 0, parseFloat(curr.windspeedKmph), parseInt(curr.uvIndex || 0)),
+        };
+      } catch {}
+    }));
+    setComparisonData(results);
+    setComparisonLoading(false);
+  };
+
+  const fetchGPSWeather = async () => {
+    setGpsLoading(true);
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Brak uprawnień', 'Zezwól na dostęp do lokalizacji w ustawieniach.');
+          setGpsLoading(false);
+          return;
+        }
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          await fetchWeather(`${latitude},${longitude}`);
+          setGpsLoading(false);
+        },
+        (err) => {
+          Alert.alert('GPS', 'Nie można pobrać lokalizacji: ' + err.message);
+          setGpsLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    } catch (e) {
+      setGpsLoading(false);
+    }
+  };
+
+  const shareWeather = async () => {
+    if (!weather) return;
+    try {
+      if (weatherCardRef.current) {
+        const uri = await captureRef(weatherCardRef, { format: 'png', quality: 1.0 });
+        await Share.share({ url: uri, message: `Pogoda — ${weather.location} ${weather.temp}` });
+      } else {
+        await Share.share({
+          message: `🌦️ Pogoda — ${weather.location}\n\nTemperatura: ${weather.temp} (odczuwalna ${weather.feelsLike})\n${weather.description}\nWiatr: ${weather.windSpeed} · Wilgotność: ${weather.humidity}\nJakość powietrza: ${weather.aqi}\nCiśnienie: ${weather.pressure.replace(' mb', ' hPa')}\n\nAktualizacja: ${weather.lastUpdate}`,
+        });
+      }
+    } catch {}
   };
 
   const addFavorite = () => {
@@ -519,9 +1027,24 @@ export default function App() {
     return hours;
   };
 
+  const sunriseH = weather ? parseHourFromTime(weather.sunrise) : -1;
+  const sunsetH = weather ? parseHourFromTime(weather.sunset) : -1;
+  const theme = getSkyTheme(
+    weather?.description || '',
+    currentTime.getHours(),
+    sunriseH >= 0 ? sunriseH : 5,
+    sunsetH >= 0 ? sunsetH : 21,
+  );
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1e90ff" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <LinearGradient
+        colors={theme.colors}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
 
       <View style={styles.header}>
         <Text style={styles.title}>⛅ Pogoda</Text>
@@ -538,6 +1061,17 @@ export default function App() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuButton}
+            onPress={() => {
+              if (weather) {
+                setShowICMInterpretation(false);
+                setShowICMModal(true);
+              }
+            }}
+          >
+            <Text style={styles.menuButtonText}>🌦️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuButton}
             onPress={() => setShowSearch(!showSearch)}
           >
             <Text style={styles.menuButtonText}>≡</Text>
@@ -546,6 +1080,7 @@ export default function App() {
       </View>
 
       {showSearch && (
+        <View>
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
@@ -569,6 +1104,42 @@ export default function App() {
             <Text style={styles.buttonText}>🔍</Text>
           </TouchableOpacity>
         </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'transparent' }}>
+          <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowHistory(true); setShowSearch(false); }}>
+            <Text style={styles.menuActionText}>📋 Historia</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowComparison(true); setShowSearch(false); fetchComparisonData(); }}>
+            <Text style={styles.menuActionText}>⚖️ Porównaj miasta</Text>
+          </TouchableOpacity>
+          {weather && (
+            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowSportModal(true); setShowSearch(false); }}>
+              <Text style={styles.menuActionText}>🚴 Sport/Rower</Text>
+            </TouchableOpacity>
+          )}
+          {weather && (
+            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { shareWeather(); setShowSearch(false); }}>
+              <Text style={styles.menuActionText}>📤 Udostępnij</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.menuActionBtn, { borderColor: notificationsEnabled ? '#4caf50' : '#999' }]}
+            onPress={async () => {
+              if (notificationsEnabled) {
+                const { cancelDailyReport } = require('./src/services/notificationService');
+                await cancelDailyReport();
+                setNotificationsEnabled(false);
+              } else {
+                const ok = await setupNotifee();
+                if (ok) { await scheduleDailyReport(7); setNotificationsEnabled(true); }
+              }
+            }}
+          >
+            <Text style={[styles.menuActionText, { color: notificationsEnabled ? '#4caf50' : '#999' }]}>
+              {notificationsEnabled ? '🔔 Alerty: WŁ' : '🔕 Alerty: WYŁ'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        </View>
       )}
 
       <ScrollView
@@ -584,45 +1155,123 @@ export default function App() {
         }
       >
 
+        {/* HERO — sygnatura wizualna (Apple Weather class) */}
+        {weather && !loading && (
+          <View style={styles.hero}>
+            <Text style={styles.heroLocation} numberOfLines={1}>
+              📍 {weather.location
+                .replace(/^Warsaw,/, 'Warszawa,').replace(/^Wawel,/, 'Kraków,').replace(/^Krakow,/, 'Kraków,')
+                .replace(/^Lodz,/, 'Łódź,').replace(/^Wroclaw,/, 'Wrocław,').replace(/^Poznan,/, 'Poznań,')
+                .replace(/^Gdansk,/, 'Gdańsk,').replace(', Poland', ', Polska')}
+            </Text>
+            <View style={styles.heroTempRow}>
+              <Text style={styles.heroIcon}>{getWeatherIconTime(weather.description, theme.night)}</Text>
+              <Text style={styles.heroTemp}>{weather.temp.replace('°C', '°')}</Text>
+            </View>
+            <Text style={styles.heroDesc}>{weather.description}</Text>
+            <View style={styles.heroMetaRow}>
+              <Text style={styles.heroMeta}>Odczuwalna {weather.feelsLike.replace('°C', '°')}</Text>
+              <Text style={styles.heroMetaDot}>·</Text>
+              <Text style={styles.heroMeta}>
+                ↑{weather.forecast?.[0]?.maxTemp?.replace('°C', '°') || weather.temp.replace('°C', '°')} ↓{weather.forecast?.[0]?.minTemp?.replace('°C', '°') || weather.temp.replace('°C', '°')}
+              </Text>
+            </View>
+            <View style={styles.heroBadge}>
+              <View style={[styles.heroBadgeDot, { backgroundColor: weather.aqiColor }]} />
+              <Text style={styles.heroBadgeText}>Powietrze: {weather.aqi}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Ulubione miasta */}
         <Text style={styles.favoritesTitle}>⭐ Ulubione miasta</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
-          {favorites.map((fav, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.favoriteChip, city === fav && styles.favoriteChipActive]}
-              onPress={() => fetchWeather(fav)}
-            >
-              <Text style={[styles.favoriteChipText, city === fav && styles.favoriteChipTextActive]}>
-                {fav}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {favorites.map((fav, idx) => {
+            const favData = favoritesWeather[fav];
+            const isActive = city === fav;
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.favoriteChip, isActive && styles.favoriteChipActive]}
+                onPress={() => fetchWeather(fav)}
+              >
+                <Text style={[styles.favoriteChipText, isActive && styles.favoriteChipTextActive]}>
+                  {fav}
+                </Text>
+                {favData && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? '#0d47a1' : '#fff' }}>
+                      {favData.temp}
+                    </Text>
+                    <View style={{
+                      width: 7, height: 7, borderRadius: 4,
+                      backgroundColor: favData.aqiColor,
+                      marginLeft: 4,
+                      borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.15)',
+                    }} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
+
+        {/* BANNER ZAUFANIA OFFLINE — użytkownik wie, że aplikacja działa */}
+        {isOffline && weather && (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineBannerTitle}>📡 Brak połączenia z internetem</Text>
+            <Text style={styles.offlineBannerText}>Wyświetlam ostatnio zapisane dane.</Text>
+            {dataTimestamp && (
+              <Text style={styles.offlineBannerTime}>
+                Ostatnia aktualizacja: {new Date(dataTimestamp).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            )}
+          </View>
+        )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
+        {/* SZYBKIE AKCJE — guziki widoczne (top app UX) */}
+        {weather && !loading && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14, flexGrow: 0 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => setShowForecastModal(true)}>
+                <Text style={styles.quickActionEmoji}>📅</Text>
+                <Text style={styles.quickActionText}>Prognoza</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { setShowICMInterpretation(false); setShowICMModal(true); }}>
+                <Text style={styles.quickActionEmoji}>🌦️</Text>
+                <Text style={styles.quickActionText}>ICM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickAction} onPress={() => setShowSportModal(true)}>
+                <Text style={styles.quickActionEmoji}>🚴</Text>
+                <Text style={styles.quickActionText}>Sport</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { setShowComparison(true); fetchComparisonData(); }}>
+                <Text style={styles.quickActionEmoji}>⚖️</Text>
+                <Text style={styles.quickActionText}>Porównaj</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickAction} onPress={() => setShowHistory(true)}>
+                <Text style={styles.quickActionEmoji}>📋</Text>
+                <Text style={styles.quickActionText}>Historia</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickAction} onPress={shareWeather}>
+                <Text style={styles.quickActionEmoji}>📤</Text>
+                <Text style={styles.quickActionText}>Udostępnij</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        )}
+
         {loading ? (
-          <ActivityIndicator size="large" color="#1e90ff" style={styles.loader} />
+          <ActivityIndicator size="large" color="#fff" style={styles.loader} />
         ) : weather ? (
           <>
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
-            <View style={styles.dashboardBox}>
+            <View style={styles.dashboardBox} ref={weatherCardRef}>
               <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#333' }}>
-                📊 Dashboard
+                📊 Przegląd
               </Text>
-
-              {/* Temperatura + Odczuwalna */}
-              <View style={styles.dashboardTempSection}>
-                <View style={styles.dashboardTempBox}>
-                  <Text style={styles.dashboardLabel}>Temperatura</Text>
-                  <Text style={styles.dashboardBigTemp}>{weather.temp}</Text>
-                </View>
-                <View style={styles.dashboardTempBox}>
-                  <Text style={styles.dashboardLabel}>Odczuwalna</Text>
-                  <Text style={styles.dashboardBigTemp} numberOfLines={1}>{weather.feelsLike}</Text>
-                </View>
-              </View>
 
               {/* Opady + Wiatr + AQI */}
               <View style={styles.dashboardGrid}>
@@ -669,9 +1318,13 @@ export default function App() {
                       </View>
                       <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
                         <Text style={styles.dashboardLabel}>📈 Jutro</Text>
-                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>
-                          {generateWeatherChange(weather).tempChange}
-                        </Text>
+                        {weather.forecast?.[0] ? (
+                          <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 20 }]}>
+                            {weather.forecast[0].maxTemp.replace('°C','°')}/{weather.forecast[0].minTemp.replace('°C','°')}
+                          </Text>
+                        ) : (
+                          <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>brak</Text>
+                        )}
                       </View>
                     </View>
                     <View style={{ backgroundColor: decision.color + '18', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: decision.color, marginBottom: 4 }}>
@@ -686,32 +1339,86 @@ export default function App() {
 
             </View>
 
-            {/* SZCZEGÓŁY + LOKACJA */}
+            {/* GODZINOWY INDEKS KOMFORTU */}
+            {weather.hourly && weather.hourly.length > 0 && (
+              <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>⏱️ Dziś godzinowo</Text>
+                  <TouchableOpacity onPress={() => { setShowSportModal(true); }}>
+                    <Text style={{ fontSize: 12, color: '#1e90ff', fontWeight: '600' }}>🚴 Sport →</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {weather.hourly.map((h, i) => {
+                      const now = new Date().getHours();
+                      const hHour = parseInt(h.time.split(':')[0]);
+                      const isPast = hHour < now;
+                      const isNow = hHour === now || (hHour <= now && hHour + 3 > now);
+                      const comfortColor = h.comfort >= 80 ? '#4caf50' : h.comfort >= 60 ? '#8bc34a' : h.comfort >= 40 ? '#ff9800' : '#f44336';
+                      return (
+                        <View key={i} style={{
+                          alignItems: 'center', padding: 8, borderRadius: 10, minWidth: 60,
+                          backgroundColor: isNow ? '#e3f2fd' : isPast ? '#f5f5f5' : '#fafafa',
+                          borderWidth: isNow ? 2 : 1,
+                          borderColor: isNow ? '#1e90ff' : '#e0e0e0',
+                          opacity: isPast ? 0.5 : 1,
+                        }}>
+                          <Text style={{ fontSize: 11, fontWeight: isNow ? '700' : '400', color: isNow ? '#1e90ff' : '#666' }}>{h.time}</Text>
+                          <Text style={{ fontSize: 20, marginVertical: 2 }}>{h.icon}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{h.temp}</Text>
+                          {h.rainChance > 15 && (
+                            <Text style={{ fontSize: 10, color: '#1e90ff' }}>💧{h.rainChance}%</Text>
+                          )}
+                          <View style={{ marginTop: 4, width: 36, height: 4, borderRadius: 2, backgroundColor: '#eee' }}>
+                            <View style={{ width: `${h.comfort}%` as any, height: 4, borderRadius: 2, backgroundColor: comfortColor }} />
+                          </View>
+                          <Text style={{ fontSize: 9, color: comfortColor, fontWeight: '700', marginTop: 1 }}>{h.comfort}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* PROGNOZA 3-DNIOWA — inline (premium) */}
+            {weather.forecast && weather.forecast.length > 0 && (
+              <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#333' }}>📆 Najbliższe dni</Text>
+                  <TouchableOpacity onPress={() => setShowForecastModal(true)}>
+                    <Text style={{ fontSize: 12, color: '#1e90ff', fontWeight: '600' }}>Szczegóły →</Text>
+                  </TouchableOpacity>
+                </View>
+                {weather.forecast.map((day, i) => {
+                  const dayDate = new Date(day.date);
+                  const dayName = i === 0 ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'long' });
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: i < weather.forecast.length - 1 ? 1 : 0, borderBottomColor: '#f0f0f0' }}
+                      onPress={() => setSelectedDay(day)}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#333', width: 90, textTransform: 'capitalize' }}>{dayName}</Text>
+                      <Text style={{ fontSize: 24, width: 40, textAlign: 'center' }}>{day.icon}</Text>
+                      <Text style={{ fontSize: 12, color: '#777', flex: 1 }} numberOfLines={1}>{day.description}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#f44336' }}>{day.maxTemp.replace('°C', '°')}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#1e90ff', marginLeft: 6 }}>{day.minTemp.replace('°C', '°')}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* SZCZEGÓŁY */}
             <View style={styles.weatherBox}>
-              <View style={styles.locationHeader}>
+              <View style={styles.detailsHeaderRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.location}>{weather.location
-                    .replace(', Poland', ', Polska')
-                    .replace(', Germany', ', Niemcy')
-                    .replace(', Czech Republic', ', Czechy')
-                    .replace(', France', ', Francja')
-                    .replace(', Slovakia', ', Słowacja')
-                    .replace(', Ukraine', ', Ukraina')
-                    .replace(', Austria', ', Austria')
-                    .replace(', Hungary', ', Węgry')
-                    .replace(', United Kingdom', ', W. Brytania')
-                    .replace(', Italy', ', Włochy')
-                    .replace(', Spain', ', Hiszpania')
-                  }</Text>
-                  <Text style={styles.dateTime}>
-                    {currentTime.toLocaleDateString('pl-PL')}
+                  <Text style={styles.detailsHeaderDate}>
+                    {currentTime.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </Text>
-                  <Text style={styles.dateTime}>
-                    {currentTime.toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'})}
-                  </Text>
-                  <Text style={styles.lastUpdate}>
-                    Aktualizacja: {weather.lastUpdate}
-                  </Text>
+                  <Text style={styles.lastUpdate}>Aktualizacja: {weather.lastUpdate}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.favoriteButton}
@@ -729,43 +1436,8 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.iconTempRow}>
-                <Text style={styles.bigIcon}>{weather.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.description}>{(() => {
-                    const APP_TRANSLATIONS: {[key: string]: string} = {
-                      'patchy light rain in area with thunder': 'Przerywany deszcz z burzą',
-                      'thundery outbreaks in nearby': 'Wyładowania burzowe w okolicy',
-                      'moderate or heavy rain with thunder': 'Silny deszcz z burzą',
-                      'blizzard': 'Zamieć śnieżna',
-                      'moderate snow': 'Umiarkowany śnieg',
-                      'ice pellets': 'Grad',
-                      'light sleet': 'Lekki śnieg z deszczem',
-                      'moderate or heavy sleet': 'Śnieg z deszczem',
-                      'freezing fog': 'Marznąca mgła',
-                      'haze': 'Zamglenie',
-                      'blowing snow': 'Wiejący śnieg',
-                    };
-                    const lower = weather.description.toLowerCase();
-                    return APP_TRANSLATIONS[lower] || weather.description;
-                  })()}</Text>
-                  <Text style={styles.insight}>{generateWeatherInsight(weather)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.details}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Odczuwa się</Text>
-                  <Text style={styles.detailValue}>{weather.feelsLike}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Wilgotność</Text>
-                  <Text style={styles.detailValue}>{weather.humidity}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Wiatr</Text>
-                  <Text style={styles.detailValue}>{weather.windSpeed}</Text>
-                </View>
+              <View style={styles.insightBox}>
+                <Text style={styles.insight}>{generateWeatherInsight(weather)}</Text>
               </View>
 
               {/* Szczegóły pogody */}
@@ -873,10 +1545,10 @@ export default function App() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.forecastHeader}>
-                    <Text style={styles.forecastDate}>{day.date}</Text>
+                    <Text style={styles.forecastDate}>{formatPolishDate(day.date)}</Text>
                     <Text style={styles.forecastIcon}>{day.icon}</Text>
                   </View>
-                  <Text style={styles.forecastDesc}>{translateWeather(day.description)}</Text>
+                  <Text style={styles.forecastDesc}>{day.description}</Text>
                   <View style={styles.forecastTemp}>
                     <Text style={styles.forecastMax}>Maks: {day.maxTemp}</Text>
                     <Text style={styles.forecastMin}>Min: {day.minTemp}</Text>
@@ -921,6 +1593,292 @@ export default function App() {
         </View>
       </Modal>
 
+      {/* HISTORIA Modal */}
+      <Modal visible={showHistory} transparent={false} animationType="slide" onRequestClose={() => setShowHistory(false)}>
+        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowHistory(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>📋 Historia pogody</Text>
+            <TouchableOpacity onPress={async () => { await AsyncStorage.removeItem('weatherHistory'); setWeatherHistory([]); }}>
+              <Text style={{ color: '#f44336', fontSize: 12, fontWeight: '600' }}>Wyczyść</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ flex: 1, padding: 12 }}>
+            {weatherHistory.length === 0 ? (
+              <Text style={{ color: '#666', textAlign: 'center', marginTop: 40 }}>Brak historii — odśwież pogodę kilka razy</Text>
+            ) : weatherHistory.map((entry, i) => (
+              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', elevation: 1 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: entry.aqiColor, marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{entry.city} — {entry.temp}</Text>
+                  <Text style={{ fontSize: 11, color: '#666' }}>{entry.description} · AQI: {entry.aqi}</Text>
+                </View>
+                <Text style={{ fontSize: 10, color: '#999' }}>{entry.timestamp}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* PORÓWNANIE MIAST Modal */}
+      <Modal visible={showComparison} transparent={false} animationType="slide" onRequestClose={() => setShowComparison(false)}>
+        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowComparison(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>⚖️ Porównaj miasta</Text>
+            <TouchableOpacity onPress={fetchComparisonData}>
+              <Text style={{ color: '#1e90ff', fontSize: 13, fontWeight: '600' }}>↺ Odśwież</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ flex: 1, padding: 12 }}>
+            {comparisonLoading ? (
+              <View style={{ alignItems: 'center', marginTop: 40 }}>
+                <ActivityIndicator size="large" color="#1e90ff" />
+                <Text style={{ color: '#666', marginTop: 12 }}>Pobieranie danych dla 6 miast…</Text>
+              </View>
+            ) : Object.keys(comparisonData).length === 0 ? (
+              <Text style={{ color: '#666', textAlign: 'center', marginTop: 40 }}>Ładowanie…</Text>
+            ) : (
+              Object.entries(comparisonData)
+                .sort(([,a], [,b]) => (b as any).comfort - (a as any).comfort)
+                .map(([cityName, data]: [string, any], i) => (
+                <View key={cityName} style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 8, elevation: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ fontSize: 18, marginRight: 6 }}>{i === 0 ? '🏆' : `${i+1}.`}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#333', flex: 1 }}>{cityName}</Text>
+                    <View style={{ backgroundColor: data.comfort >= 75 ? '#4caf50' : data.comfort >= 50 ? '#ff9800' : '#f44336', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Komfort {data.comfort}/100</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    <Text style={{ fontSize: 13 }}>{data.icon} {data.temp}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>· {data.desc}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>· 💨 {data.wind}</Text>
+                    <Text style={{ fontSize: 12, color: '#666' }}>· 💧 {data.humidity}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: data.aqiColor }} />
+                      <Text style={{ fontSize: 12, color: '#666' }}>AQI: {data.aqiLabel}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* SPORT / ROWER Modal */}
+      <Modal visible={showSportModal} transparent={false} animationType="slide" onRequestClose={() => setShowSportModal(false)}>
+        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowSportModal(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>🚴 Sport / Rower</Text>
+            <View />
+          </View>
+          {weather ? (
+            <ScrollView style={{ flex: 1, padding: 16 }}>
+              {(() => {
+                const rec = getSportRecommendation(weather);
+                return (
+                  <>
+                    <View style={{ backgroundColor: rec.color + '18', borderRadius: 14, padding: 20, alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: rec.color }}>
+                      <Text style={{ fontSize: 48 }}>{rec.emoji}</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: rec.color, marginTop: 8 }}>{rec.verdict}</Text>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 8 }}>Warunki:</Text>
+                    {rec.details.map((d, i) => (
+                      <View key={i} style={{ backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 6, elevation: 1 }}>
+                        <Text style={{ fontSize: 13, color: '#333' }}>{d}</Text>
+                      </View>
+                    ))}
+                    {weather.hourly && weather.hourly.length > 0 && (
+                      <>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#333', marginTop: 16, marginBottom: 8 }}>Najlepsze godziny dziś:</Text>
+                        {weather.hourly
+                          .filter(h => h.comfort >= 70)
+                          .slice(0, 4)
+                          .map((h, i) => (
+                          <View key={i} style={{ backgroundColor: '#e8f5e9', borderRadius: 8, padding: 10, marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 20, marginRight: 10 }}>{h.icon}</Text>
+                            <View>
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: '#2e7d32' }}>{h.time} — komfort {h.comfort}/100</Text>
+                              <Text style={{ fontSize: 12, color: '#555' }}>{h.temp} · deszcz {h.rainChance}% · wiatr {Math.round(h.windKmph)} km/h</Text>
+                            </View>
+                          </View>
+                        ))}
+                        {weather.hourly.filter(h => h.comfort >= 70).length === 0 && (
+                          <Text style={{ color: '#f44336', fontStyle: 'italic' }}>Dziś brak godzin z komfortem ≥70. Rozważ jutro.</Text>
+                        )}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </ScrollView>
+          ) : <Text style={{ padding: 20, color: '#666' }}>Brak danych pogodowych</Text>}
+        </View>
+      </Modal>
+
+      {/* ICM Meteo Modal — meteogram + interpretacja */}
+      <Modal
+        visible={showICMModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setShowICMModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowICMModal(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Prognoza ICM</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#1e90ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}
+              onPress={() => setShowICMInterpretation(v => !v)}
+            >
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '500' }}>
+                {showICMInterpretation ? 'Wykres' : 'Interpretacja'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!showICMInterpretation ? (
+            <WebView
+              source={{
+                uri: weather?.latitude && weather?.longitude
+                  ? `https://www.meteo.pl/um/php/meteorogram_map_um.php?col=${Math.round(17.09 * weather.longitude - 108.61)}&row=${Math.round(-27.23 * weather.latitude + 1820.3)}&lang=pl&ntype=0u`
+                  : 'https://www.meteo.pl/um/php/meteorogram_id_um.php?ntype=0u&id=746'
+              }}
+              style={{ flex: 1 }}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="large" color="#1e90ff" />
+                  <Text style={{ marginTop: 12, color: '#666' }}>Ładowanie meteogramu ICM…</Text>
+                </View>
+              )}
+            />
+          ) : (
+            <ScrollView style={{ flex: 1, padding: 16 }}>
+              {weather && (() => {
+                const temp = parseInt(weather.temp);
+                const feelsLike = parseInt(weather.feelsLike);
+                const humidity = parseInt(weather.humidity);
+                const windKmph = weather.windKmph || 0;
+                const uv = parseInt(weather.uvIndex);
+                const desc = weather.description.toLowerCase();
+                const hasRain = desc.includes('deszcz') || desc.includes('rain');
+                const hasStorm = desc.includes('burza') || desc.includes('storm') || desc.includes('thunder') || desc.includes('wyładowania');
+                const hasSnow = desc.includes('śnieg') || desc.includes('snow');
+                const forecast = weather.forecast;
+
+                const tempTrend = forecast.length >= 2
+                  ? (() => {
+                      const t0 = parseInt(forecast[0].maxTemp);
+                      const t1 = parseInt(forecast[1].maxTemp);
+                      const diff = t1 - t0;
+                      if (diff > 3) return `rośnie — jutro ${t0}°C, pojutrze ${t1}°C`;
+                      if (diff < -3) return `spada — jutro ${t0}°C, pojutrze ${t1}°C`;
+                      return `stabilna — jutro ${t0}°C, pojutrze ${t1}°C`;
+                    })()
+                  : 'brak danych';
+
+                const precipDays = forecast.filter(d => {
+                  const dl = d.description.toLowerCase();
+                  return dl.includes('rain') || dl.includes('deszcz') || dl.includes('storm') || dl.includes('snow');
+                }).map(d => d.date);
+
+                return (
+                  <View>
+                    <Text style={{ fontSize: 17, fontWeight: '500', color: '#1a1a1a', marginBottom: 16 }}>
+                      Interpretacja meteogramu — {weather.location.split(',')[0]}
+                    </Text>
+
+                    <View style={{ backgroundColor: '#f0f4ff', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#1e90ff', marginBottom: 6 }}>Temperatura</Text>
+                      <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
+                        Aktualnie <Text style={{ fontWeight: '500' }}>{weather.temp}</Text>, odczuwalnie <Text style={{ fontWeight: '500' }}>{weather.feelsLike}</Text>
+                        {Math.abs(temp - feelsLike) >= 3
+                          ? feelsLike < temp
+                            ? ` — wiatr lub wilgotność obniżają komfort o ${temp - feelsLike}°C.`
+                            : ` — wysoka wilgotność podnosi dyskomfort o ${feelsLike - temp}°C.`
+                          : ' — temperatura odczuwalna zbliżona do rzeczywistej.'
+                        }
+                        {'\n'}Trend: {tempTrend}.
+                      </Text>
+                    </View>
+
+                    <View style={{ backgroundColor: '#f0fff4', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#2e7d32', marginBottom: 6 }}>Opady i zjawiska</Text>
+                      <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
+                        {hasStorm
+                          ? 'Aktualnie burza — unikaj otwartej przestrzeni i wysokich obiektów.'
+                          : hasRain
+                          ? 'Aktualnie opady deszczu — zabierz parasol na wyjście.'
+                          : hasSnow
+                          ? 'Aktualnie opady śniegu — ostrożnie na drogach.'
+                          : 'Brak opadów w tej chwili.'}
+                        {precipDays.length > 0
+                          ? `\nOpady prognozowane: ${precipDays.join(', ')}.`
+                          : '\nNajbliższe dni bez opadów.'}
+                      </Text>
+                    </View>
+
+                    <View style={{ backgroundColor: '#fff8e1', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#f57f17', marginBottom: 6 }}>Wiatr i wilgotność</Text>
+                      <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
+                        Wiatr <Text style={{ fontWeight: '500' }}>{weather.windSpeed}</Text>
+                        {windKmph > 50 ? ' — silny, utrudnia poruszanie się na zewnątrz.'
+                          : windKmph > 25 ? ' — umiarkowany, może być odczuwalny.'
+                          : ' — słaby, komfortowy.'}{'\n'}
+                        Wilgotność <Text style={{ fontWeight: '500' }}>{weather.humidity}</Text>
+                        {humidity > 80 ? ' — wysoka, możliwe uczucie parności.'
+                          : humidity < 40 ? ' — niska, warto nawodnić się.'
+                          : ' — komfortowa.'}
+                      </Text>
+                    </View>
+
+                    <View style={{ backgroundColor: '#fce4ec', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#c62828', marginBottom: 6 }}>UV i ciśnienie</Text>
+                      <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
+                        UV: <Text style={{ fontWeight: '500' }}>{weather.uvIndex}</Text>
+                        {uv <= 2 ? ' — niskie, ochrona zbędna.'
+                          : uv <= 5 ? ' — umiarkowane, kremem nie zaszkodzi.'
+                          : uv <= 7 ? ' — wysokie, filtr SPF zalecany.'
+                          : ' — bardzo wysokie, ogranicz ekspozycję.'}{'\n'}
+                        Ciśnienie: <Text style={{ fontWeight: '500' }}>{weather.pressure.replace(' mb', ' hPa')}</Text>
+                        {parseInt(weather.pressure) > 1020 ? ' — wyż, dobra pogoda.' : parseInt(weather.pressure) < 1005 ? ' — niż, możliwe pogorszenie.' : ' — normalne.'}
+                      </Text>
+                    </View>
+
+                    <View style={{ backgroundColor: '#e3f2fd', borderRadius: 10, padding: 14, marginBottom: 24 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#1565c0', marginBottom: 6 }}>Jakość powietrza</Text>
+                      <Text style={{ fontSize: 14, color: '#333', lineHeight: 20 }}>
+                        {weather.aqiEmoji} <Text style={{ fontWeight: '500' }}>{weather.aqi}</Text>{'\n'}
+                        PM2.5: {weather.pm25} · PM10: {weather.pm10}{'\n'}
+                        {weather.aqi.toLowerCase().includes('dobra') ? 'Powietrze czyste — bezpieczne dla wszystkich.'
+                          : weather.aqi.toLowerCase().includes('umiarkowana') ? 'Powietrze umiarkowane — wrażliwe osoby mogą odczuć dyskomfort.'
+                          : 'Zła jakość powietrza — ogranicz czas na zewnątrz.'}
+                      </Text>
+                    </View>
+
+                    <Text style={{ fontSize: 11, color: '#999', textAlign: 'center', marginBottom: 20 }}>
+                      Prognoza udostępniona bezpłatnie przez serwis meteo.pl prowadzony przez ICM, Uniwersytet Warszawski
+                    </Text>
+                  </View>
+                );
+              })()}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+
       {/* Modal dla szczegółów dnia */}
       <Modal
         visible={selectedDay !== null}
@@ -941,11 +1899,11 @@ export default function App() {
             <ScrollView style={styles.modalContent}>
               <View style={styles.modalDayCard}>
                 <View style={styles.modalDayHeader}>
-                  <Text style={styles.modalDate}>{selectedDay.date}</Text>
+                  <Text style={styles.modalDate}>{formatPolishDate(selectedDay.date)}</Text>
                   <Text style={styles.modalDayIcon}>{selectedDay.icon}</Text>
                 </View>
 
-                <Text style={styles.modalDesc}>{translateWeather(selectedDay.description)}</Text>
+                <Text style={styles.modalDesc}>{selectedDay.description}</Text>
 
                 <View style={styles.modalDetailsGrid}>
                   <View style={styles.modalDetailBox}>
@@ -973,22 +1931,145 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
     flexDirection: 'column',
   },
   header: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 20,
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 48,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  hero: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 22,
+  },
+  heroLocation: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.95)',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  heroTempRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIcon: {
+    fontSize: 64,
+    marginRight: 8,
+  },
+  heroTemp: {
+    fontSize: 88,
+    fontWeight: '200',
+    color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  heroDesc: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.95)',
+    marginTop: -4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 8,
+  },
+  heroMeta: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+  },
+  heroMetaDot: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  heroBadgeDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    marginRight: 7,
+  },
+  heroBadgeText: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  quickAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    minWidth: 72,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  quickActionEmoji: {
+    fontSize: 22,
+    marginBottom: 3,
+  },
+  quickActionText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  glassLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '500',
+  },
+  glassValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  sectionTitleLight: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 10,
   },
   menuButton: {
     padding: 8,
@@ -1030,7 +2111,7 @@ const styles = StyleSheet.create({
   favoritesTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 8,
   },
   favoritesScroll: {
@@ -1038,44 +2119,86 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   favoriteChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#e3f2fd',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: '#1e90ff',
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   favoriteChipActive: {
-    backgroundColor: '#1e90ff',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderColor: 'rgba(255,255,255,0.92)',
   },
   favoriteChipText: {
-    fontSize: 12,
-    color: '#1e90ff',
+    fontSize: 13,
+    color: '#fff',
     fontWeight: '600',
   },
   favoriteChipTextActive: {
-    color: '#fff',
+    color: '#0d47a1',
+  },
+  menuActionBtn: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  menuActionText: {
+    fontSize: 13,
+    color: '#0d47a1',
+    fontWeight: '700',
   },
   error: {
-    color: '#d32f2f',
+    color: '#fff',
     fontSize: 14,
     marginBottom: 16,
     textAlign: 'center',
+    backgroundColor: 'rgba(211,47,47,0.85)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  offlineBanner: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
+  },
+  offlineBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#e65100',
+  },
+  offlineBannerText: {
+    fontSize: 13,
+    color: '#444',
+    marginTop: 3,
+  },
+  offlineBannerTime: {
+    fontSize: 13,
+    color: '#333',
+    marginTop: 4,
+    fontWeight: '600',
   },
   loader: {
     marginVertical: 40,
   },
   dashboardBox: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
   },
   dashboardGrid: {
     flexDirection: 'row',
@@ -1130,14 +2253,34 @@ const styles = StyleSheet.create({
   },
   weatherBox: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  detailsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailsHeaderDate: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    textTransform: 'capitalize',
+  },
+  insightBox: {
+    backgroundColor: '#f5f9ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#1e90ff',
   },
   locationHeader: {
     flexDirection: 'row',
@@ -1187,10 +2330,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   insight: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#444',
+    lineHeight: 18,
   },
   changeCard: {
     backgroundColor: '#fff3e0',
