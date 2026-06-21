@@ -24,6 +24,7 @@ import ViewShot, { captureRef } from 'react-native-view-shot';
 import LinearGradient from 'react-native-linear-gradient';
 import WeatherIcon from './src/components/WeatherIcon';
 import TempCurve from './src/components/TempCurve';
+import SectionHeader from './src/components/SectionHeader';
 import { Dimensions } from 'react-native';
 import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
 import { NativeModules } from 'react-native';
@@ -1255,7 +1256,7 @@ export default function App() {
         )}
 
         {/* Ulubione miasta */}
-        <Text style={styles.favoritesTitle}>⭐ Ulubione miasta</Text>
+        <Text style={styles.favoritesTitle}>ULUBIONE MIASTA</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
           {favorites.map((fav, idx) => {
             const favData = favoritesWeather[fav];
@@ -1340,14 +1341,12 @@ export default function App() {
           <Animated.View style={{ opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
             <View style={styles.dashboardBox} ref={weatherCardRef}>
-              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#333' }}>
-                📊 Przegląd
-              </Text>
+              <SectionHeader title="Przegląd" accent={theme.accent} />
 
               {/* Opady + Wiatr + AQI */}
               <View style={styles.dashboardGrid}>
                 <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>☔ Opady</Text>
+                  <Text style={styles.dashboardLabel}>OPADY</Text>
                   <Text style={styles.dashboardValue}>
                     {(() => {
                       const desc = weather.description.toLowerCase();
@@ -1359,15 +1358,15 @@ export default function App() {
                   </Text>
                 </View>
                 <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>💨 Wiatr</Text>
+                  <Text style={styles.dashboardLabel}>WIATR</Text>
                   <Text style={styles.dashboardValue} numberOfLines={1}>{weather.windSpeed}</Text>
                 </View>
                 <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>💧 Wilgotność</Text>
+                  <Text style={styles.dashboardLabel}>WILGOTNOŚĆ</Text>
                   <Text style={styles.dashboardValue}>{weather.humidity}</Text>
                 </View>
                 <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>{weather.aqiEmoji} Powietrze</Text>
+                  <Text style={styles.dashboardLabel}>POWIETRZE</Text>
                   <Text style={[styles.dashboardValue, { color: weather.aqiColor, fontSize: weather.aqi.length > 8 ? 14 : 22 }]}>
                     {weather.aqi}
                   </Text>
@@ -1382,13 +1381,13 @@ export default function App() {
                   <>
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                       <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff9e6', borderRadius: 8 }}>
-                        <Text style={styles.dashboardLabel}>🎯 Komfort</Text>
+                        <Text style={styles.dashboardLabel}>KOMFORT</Text>
                         <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 24 }]}>
                           {score}/100
                         </Text>
                       </View>
                       <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
-                        <Text style={styles.dashboardLabel}>📈 Jutro</Text>
+                        <Text style={styles.dashboardLabel}>JUTRO</Text>
                         {weather.forecast?.[0] ? (
                           <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 20 }]}>
                             {weather.forecast[0].maxTemp.replace('°C','°')}/{weather.forecast[0].minTemp.replace('°C','°')}
@@ -1413,12 +1412,15 @@ export default function App() {
             {/* GODZINOWY INDEKS KOMFORTU */}
             {weather.hourly && weather.hourly.length > 0 && (
               <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>⏱️ Dziś godzinowo</Text>
-                  <TouchableOpacity onPress={() => { setShowSportModal(true); }}>
-                    <Text style={{ fontSize: 12, color: '#1e90ff', fontWeight: '600' }}>🚴 Sport →</Text>
-                  </TouchableOpacity>
-                </View>
+                <SectionHeader
+                  title="Dziś godzinowo"
+                  accent={theme.accent}
+                  right={
+                    <TouchableOpacity onPress={() => { haptic(); setShowSportModal(true); }}>
+                      <Text style={{ fontSize: 13, color: '#1e90ff', fontWeight: '700' }}>Sport →</Text>
+                    </TouchableOpacity>
+                  }
+                />
 
                 {/* Krzywa temperatury (yr.no / Apple style) */}
                 {(() => {
@@ -1473,12 +1475,15 @@ export default function App() {
             {/* PROGNOZA 3-DNIOWA — inline (premium) */}
             {weather.forecast && weather.forecast.length > 0 && (
               <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#333' }}>📆 Najbliższe dni</Text>
-                  <TouchableOpacity onPress={() => setShowForecastModal(true)}>
-                    <Text style={{ fontSize: 12, color: '#1e90ff', fontWeight: '600' }}>Szczegóły →</Text>
-                  </TouchableOpacity>
-                </View>
+                <SectionHeader
+                  title="Najbliższe dni"
+                  accent={theme.accent}
+                  right={
+                    <TouchableOpacity onPress={() => { haptic(); setShowForecastModal(true); }}>
+                      <Text style={{ fontSize: 13, color: '#1e90ff', fontWeight: '700' }}>Szczegóły →</Text>
+                    </TouchableOpacity>
+                  }
+                />
                 {weather.forecast.map((day, i) => {
                   const dayDate = new Date(day.date);
                   const dayName = i === 0 ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'long' });
@@ -1531,7 +1536,7 @@ export default function App() {
               </View>
 
               {/* Szczegóły pogody */}
-              <Text style={styles.detailsTitle}>📊 Szczegóły</Text>
+              <SectionHeader title="Szczegóły" accent={theme.accent} />
               <View style={styles.detailsGrid}>
                 <View style={styles.detailGridItem}>
                   <Text style={styles.detailGridLabel}>Ciśnienie</Text>
@@ -1546,13 +1551,13 @@ export default function App() {
                   <Text style={styles.detailGridValue}>{weather.uvIndex}</Text>
                 </View>
                 <View style={[styles.detailGridItem, { backgroundColor: '#fff3cd' }]}>
-                  <Text style={styles.detailGridLabel}>☀️ Długość dnia</Text>
+                  <Text style={styles.detailGridLabel}>Długość dnia</Text>
                   <Text style={[styles.detailGridValue, { color: '#ff9800' }]}>
                     {calculateDayLength(weather.sunrise, weather.sunset)}
                   </Text>
                 </View>
                 <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>🌅 Wschód słońca</Text>
+                  <Text style={styles.detailGridLabel}>Wschód słońca</Text>
                   <Text style={styles.detailGridValue}>{(() => {
                     const t = weather.sunrise;
                     if (!t || t === 'N/A') return 'N/A';
@@ -1567,7 +1572,7 @@ export default function App() {
                   })()}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>🌇 Zachód słońca</Text>
+                  <Text style={styles.detailGridLabel}>Zachód słońca</Text>
                   <Text style={styles.detailGridValue}>{(() => {
                     const t = weather.sunset;
                     if (!t || t === 'N/A') return 'N/A';
@@ -1590,7 +1595,7 @@ export default function App() {
                   <Text style={styles.detailGridValue}>{weather.pm10}</Text>
                 </View>
                 <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>🌾 Pyłki</Text>
+                  <Text style={styles.detailGridLabel}>Pyłki</Text>
                   <Text style={[styles.detailGridValue, { color: weather.pollenColor || '#999', fontSize: (weather.pollen || '').length > 14 ? 13 : 16 }]} numberOfLines={2}>
                     {weather.pollen || 'Brak danych'}
                   </Text>
@@ -1599,9 +1604,9 @@ export default function App() {
                   style={[styles.detailGridItem, { backgroundColor: weather.aqiColor }]}
                   onPress={() => setShowAQIModal(true)}
                 >
-                  <Text style={styles.detailGridLabel}>Jakość powietrza</Text>
+                  <Text style={[styles.detailGridLabel, { color: 'rgba(255,255,255,0.85)' }]}>Jakość powietrza</Text>
                   <Text style={[styles.detailGridValue, { color: '#fff', fontSize: 18 }]}>
-                    {weather.aqiEmoji} {weather.aqi}
+                    {weather.aqi}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -2206,10 +2211,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   favoritesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 10,
+    letterSpacing: 1.2,
   },
   favoritesScroll: {
     marginBottom: 16,
@@ -2314,16 +2320,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dashboardLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+    fontSize: 10,
+    color: '#9aa5b1',
+    marginBottom: 5,
     textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   dashboardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 23,
+    fontWeight: '800',
+    color: '#1a1a1a',
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   dashboardTempSection: {
     width: '100%',
@@ -2594,21 +2603,26 @@ const styles = StyleSheet.create({
   },
   detailGridItem: {
     width: '48%',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: '#f5f7fa',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     marginBottom: 8,
     alignItems: 'center',
   },
   detailGridLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: 10,
+    color: '#9aa5b1',
+    marginBottom: 5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textAlign: 'center',
   },
   detailGridValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e90ff',
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    textAlign: 'center',
   },
   forecastTitle: {
     fontSize: 15,
