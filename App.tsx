@@ -20,6 +20,9 @@ import axios from 'axios';
 import { WebView } from 'react-native-webview';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import LinearGradient from 'react-native-linear-gradient';
+import WeatherIcon from './src/components/WeatherIcon';
+import TempCurve from './src/components/TempCurve';
+import { Dimensions } from 'react-native';
 import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
 import { NativeModules } from 'react-native';
 const { WidgetModule } = NativeModules;
@@ -64,6 +67,8 @@ interface HourlyData {
   temp: string;
   feelsLike: string;
   icon: string;
+  cond: string;
+  night: boolean;
   rainChance: number;
   windKmph: number;
   uvIndex: number;
@@ -493,10 +498,11 @@ export default function App() {
 
     try {
       // Parallel API calls for faster loading
-      // Cache-bust + no-store: gwarantuje świeże dane online, a offline pewny błąd
-      // (bez tego OkHttp serwuje starą odpowiedź offline i maskuje brak sieci)
+      // UWAGA: wttr.in zwraca HTTP 500 dla URL z nieznanym parametrem (np. cache-bust _=).
+      // Dlatego NIE dodajemy parametru do URL — świeżość wymuszamy nagłówkiem no-store,
+      // który OkHttp respektuje (offline = pewny błąd → tryb offline), a wttr.in akceptuje (200).
       const wttrPromise = axios.get(
-        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl&_=${Date.now()}`,
+        `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
         { timeout: 10000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
       );
 
@@ -591,6 +597,8 @@ export default function App() {
           temp: `${Math.round(hTemp)}°`,
           feelsLike: `${h.FeelsLikeC || Math.round(hTemp)}°`,
           icon: getWeatherIconTime(getPolishDesc(h), hNight),
+          cond: getPolishDesc(h),
+          night: hNight,
           rainChance: hRain,
           windKmph: hWind,
           uvIndex: hUV,
@@ -1165,7 +1173,9 @@ export default function App() {
                 .replace(/^Gdansk,/, 'Gdańsk,').replace(', Poland', ', Polska')}
             </Text>
             <View style={styles.heroTempRow}>
-              <Text style={styles.heroIcon}>{getWeatherIconTime(weather.description, theme.night)}</Text>
+              <View style={{ marginRight: 6 }}>
+                <WeatherIcon desc={weather.description} night={theme.night} size={68} />
+              </View>
               <Text style={styles.heroTemp}>{weather.temp.replace('°C', '°')}</Text>
             </View>
             <Text style={styles.heroDesc}>{weather.description}</Text>
@@ -1348,6 +1358,21 @@ export default function App() {
                     <Text style={{ fontSize: 12, color: '#1e90ff', fontWeight: '600' }}>🚴 Sport →</Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Krzywa temperatury (yr.no / Apple style) */}
+                {(() => {
+                  const nowH = new Date().getHours();
+                  const pts = weather.hourly.map(h => {
+                    const hH = parseInt(h.time.split(':')[0]);
+                    return {
+                      label: h.time.split(':')[0],
+                      temp: parseInt(h.temp.replace('°', '')) || 0,
+                      isNow: hH <= nowH && hH + 3 > nowH,
+                    };
+                  });
+                  return <TempCurve points={pts} width={Dimensions.get('window').width - 56} />;
+                })()}
+
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {weather.hourly.map((h, i) => {
@@ -1365,7 +1390,9 @@ export default function App() {
                           opacity: isPast ? 0.5 : 1,
                         }}>
                           <Text style={{ fontSize: 11, fontWeight: isNow ? '700' : '400', color: isNow ? '#1e90ff' : '#666' }}>{h.time}</Text>
-                          <Text style={{ fontSize: 20, marginVertical: 2 }}>{h.icon}</Text>
+                          <View style={{ marginVertical: 3 }}>
+                            <WeatherIcon desc={h.cond} night={h.night} size={30} />
+                          </View>
                           <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{h.temp}</Text>
                           {h.rainChance > 15 && (
                             <Text style={{ fontSize: 10, color: '#1e90ff' }}>💧{h.rainChance}%</Text>
@@ -1401,7 +1428,9 @@ export default function App() {
                       onPress={() => setSelectedDay(day)}
                     >
                       <Text style={{ fontSize: 14, fontWeight: '600', color: '#333', width: 90, textTransform: 'capitalize' }}>{dayName}</Text>
-                      <Text style={{ fontSize: 24, width: 40, textAlign: 'center' }}>{day.icon}</Text>
+                      <View style={{ width: 40, alignItems: 'center' }}>
+                        <WeatherIcon desc={day.description} size={32} />
+                      </View>
                       <Text style={{ fontSize: 12, color: '#777', flex: 1 }} numberOfLines={1}>{day.description}</Text>
                       <Text style={{ fontSize: 14, fontWeight: '700', color: '#f44336' }}>{day.maxTemp.replace('°C', '°')}</Text>
                       <Text style={{ fontSize: 14, fontWeight: '500', color: '#1e90ff', marginLeft: 6 }}>{day.minTemp.replace('°C', '°')}</Text>
