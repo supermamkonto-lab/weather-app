@@ -1626,8 +1626,8 @@ export default function App() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.forecastHeader}>
-                    <Text style={styles.forecastDate}>{formatPolishDate(day.date)}</Text>
-                    <Text style={styles.forecastIcon}>{day.icon}</Text>
+                    <Text style={[styles.forecastDate, { textTransform: 'capitalize', fontSize: 15, fontWeight: '700' }]}>{formatPolishDate(day.date)}</Text>
+                    <WeatherIcon desc={day.description} size={38} />
                   </View>
                   <Text style={styles.forecastDesc}>{day.description}</Text>
                   <View style={styles.forecastTemp}>
@@ -1658,15 +1658,46 @@ export default function App() {
           </View>
           {weather && (
             <ScrollView style={styles.modalContent}>
-              <View style={[styles.modalDayCard, { backgroundColor: weather.aqiColor }]}>
-                <Text style={[styles.modalDate, { color: '#fff' }]}>
-                  {weather.aqiEmoji} {weather.aqi}
+              {/* Karta-bohater z poziomem jakości powietrza */}
+              <View style={[styles.modalDayCard, { backgroundColor: weather.aqiColor, alignItems: 'center' }]}>
+                <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '700', letterSpacing: 1 }}>
+                  JAKOŚĆ POWIETRZA
                 </Text>
-                <Text style={[styles.modalDesc, { color: '#fff', marginTop: 16 }]}>
-                  PM2.5: {weather.pm25}
+                <Text style={{ fontSize: 30, color: '#fff', fontWeight: '800', marginTop: 6, textAlign: 'center' }}>
+                  {weather.aqi}
                 </Text>
-                <Text style={[styles.modalDesc, { color: '#fff' }]}>
-                  PM10: {weather.pm10}
+              </View>
+
+              {/* Pyły */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '700', letterSpacing: 0.6 }}>PM2.5</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1a1a', marginTop: 4 }}>{weather.pm25}</Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '700', letterSpacing: 0.6 }}>PM10</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1a1a', marginTop: 4 }}>{weather.pm10}</Text>
+                </View>
+              </View>
+
+              {/* Pyłki */}
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '700', letterSpacing: 0.6, marginBottom: 4 }}>PYŁKI</Text>
+                <Text style={{ fontSize: 17, fontWeight: '800', color: weather.pollenColor || '#1a1a1a' }}>{weather.pollen || 'Brak danych'}</Text>
+              </View>
+
+              {/* Zalecenie zdrowotne */}
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: weather.aqiColor }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#333', marginBottom: 4 }}>Zalecenie</Text>
+                <Text style={{ fontSize: 14, color: '#555', lineHeight: 20 }}>
+                  {(() => {
+                    const a = weather.aqi.toLowerCase();
+                    if (a.includes('dobra')) return 'Powietrze czyste — bez ograniczeń, można swobodnie przebywać na zewnątrz.';
+                    if (a.includes('umiarkowana')) return 'Powietrze umiarkowane — osoby wrażliwe (astma, alergie) mogą odczuć dyskomfort przy długim wysiłku.';
+                    if (a.includes('wrażliwych')) return 'Niezdrowe dla osób wrażliwych — ogranicz intensywny wysiłek na zewnątrz.';
+                    if (a.includes('zła') || a.includes('bardzo')) return 'Zła jakość powietrza — ogranicz przebywanie na zewnątrz, rozważ maskę.';
+                    return 'Brak danych o jakości powietrza dla tej lokalizacji.';
+                  })()}
                 </Text>
               </View>
             </ScrollView>
@@ -1681,7 +1712,7 @@ export default function App() {
             <TouchableOpacity onPress={() => setShowHistory(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>📋 Historia pogody</Text>
+            <Text style={styles.modalTitle}>Historia pogody</Text>
             <TouchableOpacity onPress={async () => { await AsyncStorage.removeItem('weatherHistory'); setWeatherHistory([]); }}>
               <Text style={{ color: '#f44336', fontSize: 12, fontWeight: '600' }}>Wyczyść</Text>
             </TouchableOpacity>
@@ -1710,7 +1741,7 @@ export default function App() {
             <TouchableOpacity onPress={() => setShowComparison(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>⚖️ Porównaj miasta</Text>
+            <Text style={styles.modalTitle}>Porównaj miasta</Text>
             <TouchableOpacity onPress={fetchComparisonData}>
               <Text style={{ color: '#1e90ff', fontSize: 13, fontWeight: '600' }}>↺ Odśwież</Text>
             </TouchableOpacity>
@@ -1759,7 +1790,7 @@ export default function App() {
             <TouchableOpacity onPress={() => setShowSportModal(false)}>
               <Text style={styles.modalCloseButton}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>🚴 Sport / Rower</Text>
+            <Text style={styles.modalTitle}>Sport / Rower</Text>
             <View />
           </View>
           {weather ? (
@@ -1980,8 +2011,8 @@ export default function App() {
             <ScrollView style={styles.modalContent}>
               <View style={styles.modalDayCard}>
                 <View style={styles.modalDayHeader}>
-                  <Text style={styles.modalDate}>{formatPolishDate(selectedDay.date)}</Text>
-                  <Text style={styles.modalDayIcon}>{selectedDay.icon}</Text>
+                  <Text style={[styles.modalDate, { textTransform: 'capitalize' }]}>{formatPolishDate(selectedDay.date)}</Text>
+                  <WeatherIcon desc={selectedDay.description} size={48} />
                 </View>
 
                 <Text style={styles.modalDesc}>{selectedDay.description}</Text>
@@ -2618,13 +2649,13 @@ const styles = StyleSheet.create({
   },
   forecastCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 6,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
     elevation: 1,
   },
   forecastHeader: {
@@ -2662,21 +2693,22 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#eef2f6',
   },
   modalHeader: {
     backgroundColor: '#1e90ff',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 46,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '800',
     color: '#fff',
+    letterSpacing: 0.3,
   },
   modalCloseButton: {
     fontSize: 28,
@@ -2690,13 +2722,14 @@ const styles = StyleSheet.create({
   },
   modalDayCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 20,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalDayHeader: {
     flexDirection: 'row',
