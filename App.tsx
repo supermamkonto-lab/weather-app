@@ -584,7 +584,7 @@ export default function App() {
           if (data.hourly) {
             const hourlyData = data.hourly;
             todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => ({
-              time: time.replace('T', '').replace(':', '').substring(8, 12), // Convert to HHMM format
+              time: `${idx.toString().padStart(2, '0')}:00`, // Index as hour: 0→00:00, 1→01:00, etc
               tempC: hourlyData.temperature_2m[idx],
               chanceofrain: hourlyData.precipitation_probability[idx],
               windspeedKmph: hourlyData.wind_speed_10m[idx],
