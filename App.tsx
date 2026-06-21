@@ -14,6 +14,8 @@ import {
   Share,
   PermissionsAndroid,
   Platform,
+  Animated,
+  Vibration,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -47,6 +49,8 @@ interface Weather {
   aqi: string;
   aqiColor: string;
   aqiEmoji: string;
+  pollen: string;
+  pollenColor: string;
   lastUpdate: string;
   latitude?: number;
   longitude?: number;
@@ -246,6 +250,30 @@ const getAQIColor = (aqi: string): { color: string; emoji: string; text: string 
   return { color: '#666', emoji: '⚪', text: 'Brak danych' };
 };
 
+// Analiza pyłków — dominujący typ + poziom + kolor (progi grains/m³ wg typu)
+const POLLEN_PL: { [k: string]: string } = {
+  grass: 'Trawy', birch: 'Brzoza', alder: 'Olcha',
+  ragweed: 'Ambrozja', mugwort: 'Bylica', olive: 'Oliwka',
+};
+const getPollenInfo = (vals: { [k: string]: number }): { label: string; color: string } => {
+  let topType = ''; let topVal = -1;
+  Object.keys(POLLEN_PL).forEach(t => {
+    const v = vals[t];
+    if (typeof v === 'number' && v > topVal) { topVal = v; topType = t; }
+  });
+  if (topVal <= 0) return { label: 'Brak pyłków', color: '#4CAF50' };
+  // progi zależne od typu (drzewa vs trawy vs chwasty)
+  let mid: number, hi: number, vhi: number;
+  if (topType === 'grass') { mid = 30; hi = 50; vhi = 150; }
+  else if (topType === 'ragweed' || topType === 'mugwort') { mid = 10; hi = 50; vhi = 500; }
+  else { mid = 10; hi = 100; vhi = 500; } // drzewa: brzoza/olcha/oliwka
+  const name = POLLEN_PL[topType];
+  if (topVal < mid) return { label: `${name}: niski`, color: '#4CAF50' };
+  if (topVal < hi) return { label: `${name}: umiarkowany`, color: '#FFC107' };
+  if (topVal < vhi) return { label: `${name}: wysoki`, color: '#FF9800' };
+  return { label: `${name}: bardzo wysoki`, color: '#F44336' };
+};
+
 const calcHourlyComfort = (tempC: number, rainChance: number, windKmph: number, uvIndex: number): number => {
   let score = 100;
   const t = tempC;
@@ -400,11 +428,25 @@ export default function App() {
   const [showSportModal, setShowSportModal] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const weatherCardRef = React.useRef<View>(null);
+  const contentAnim = React.useRef(new Animated.Value(0)).current;
+  const haptic = () => { try { Vibration.vibrate(8); } catch {} };
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [cachedWeather, setCachedWeather] = useState<Weather | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [dataTimestamp, setDataTimestamp] = useState<number | null>(null);
+
+  // Mikroanimacja wejścia danych (fade + slide) przy zmianie pogody
+  useEffect(() => {
+    if (weather && !loading) {
+      contentAnim.setValue(0);
+      Animated.timing(contentAnim, {
+        toValue: 1,
+        duration: 380,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [weather?.location, weather?.lastUpdate, loading]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -532,12 +574,14 @@ export default function App() {
       let aqi = 'Brak danych dla lokalizacji';
       let aqiColor = '#666';
       let aqiEmoji = '⚪';
+      let pollen = 'Brak danych';
+      let pollenColor = '#999';
 
       try {
-        // Non-blocking AQI fetch - timeout 2 sec (parallel with weather)
+        // Non-blocking AQI + pyłki fetch - timeout 2 sec (jedno zapytanie)
         aqiResponse = await Promise.race([
           axios.get(
-            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi`,
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi,grass_pollen,birch_pollen,alder_pollen,ragweed_pollen,mugwort_pollen,olive_pollen`,
             { timeout: 2000 }
           ),
           new Promise((_, reject) => setTimeout(() => reject(new Error('AQI timeout')), 2000))
@@ -566,6 +610,20 @@ export default function App() {
             const aqiInfo = getAQIColor(aqi);
             aqiColor = aqiInfo.color;
             aqiEmoji = aqiInfo.emoji;
+          }
+
+          // Pyłki — dominujący typ + poziom
+          const pollenInfo = getPollenInfo({
+            grass: aqiData.grass_pollen,
+            birch: aqiData.birch_pollen,
+            alder: aqiData.alder_pollen,
+            ragweed: aqiData.ragweed_pollen,
+            mugwort: aqiData.mugwort_pollen,
+            olive: aqiData.olive_pollen,
+          });
+          if (aqiData.grass_pollen !== undefined || aqiData.birch_pollen !== undefined) {
+            pollen = pollenInfo.label;
+            pollenColor = pollenInfo.color;
           }
         }
       } catch (err) {
@@ -634,6 +692,8 @@ export default function App() {
         aqi,
         aqiColor,
         aqiEmoji,
+        pollen,
+        pollenColor,
         lastUpdate,
         latitude: parseFloat(lat),
         longitude: parseFloat(lon),
@@ -856,6 +916,7 @@ export default function App() {
   };
 
   const onRefresh = async () => {
+    haptic();
     setRefreshing(true);
     await fetchWeather();
     setRefreshing(false);
@@ -1165,7 +1226,7 @@ export default function App() {
 
         {/* HERO — sygnatura wizualna (Apple Weather class) */}
         {weather && !loading && (
-          <View style={styles.hero}>
+          <Animated.View style={[styles.hero, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
             <Text style={styles.heroLocation} numberOfLines={1}>
               📍 {weather.location
                 .replace(/^Warsaw,/, 'Warszawa,').replace(/^Wawel,/, 'Kraków,').replace(/^Krakow,/, 'Kraków,')
@@ -1190,7 +1251,7 @@ export default function App() {
               <View style={[styles.heroBadgeDot, { backgroundColor: weather.aqiColor }]} />
               <Text style={styles.heroBadgeText}>Powietrze: {weather.aqi}</Text>
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Ulubione miasta */}
@@ -1203,7 +1264,7 @@ export default function App() {
               <TouchableOpacity
                 key={idx}
                 style={[styles.favoriteChip, isActive && styles.favoriteChipActive]}
-                onPress={() => fetchWeather(fav)}
+                onPress={() => { haptic(); fetchWeather(fav); }}
               >
                 <Text style={[styles.favoriteChipText, isActive && styles.favoriteChipTextActive]}>
                   {fav}
@@ -1245,27 +1306,27 @@ export default function App() {
         {weather && !loading && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14, flexGrow: 0 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={styles.quickAction} onPress={() => setShowForecastModal(true)}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowForecastModal(true); }}>
                 <Text style={styles.quickActionEmoji}>📅</Text>
                 <Text style={styles.quickActionText}>Prognoza</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { setShowICMInterpretation(false); setShowICMModal(true); }}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowICMInterpretation(false); setShowICMModal(true); }}>
                 <Text style={styles.quickActionEmoji}>🌦️</Text>
                 <Text style={styles.quickActionText}>ICM</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => setShowSportModal(true)}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowSportModal(true); }}>
                 <Text style={styles.quickActionEmoji}>🚴</Text>
                 <Text style={styles.quickActionText}>Sport</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { setShowComparison(true); fetchComparisonData(); }}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowComparison(true); fetchComparisonData(); }}>
                 <Text style={styles.quickActionEmoji}>⚖️</Text>
                 <Text style={styles.quickActionText}>Porównaj</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => setShowHistory(true)}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowHistory(true); }}>
                 <Text style={styles.quickActionEmoji}>📋</Text>
                 <Text style={styles.quickActionText}>Historia</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={shareWeather}>
+              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); shareWeather(); }}>
                 <Text style={styles.quickActionEmoji}>📤</Text>
                 <Text style={styles.quickActionText}>Udostępnij</Text>
               </TouchableOpacity>
@@ -1276,7 +1337,7 @@ export default function App() {
         {loading ? (
           <ActivityIndicator size="large" color="#fff" style={styles.loader} />
         ) : weather ? (
-          <>
+          <Animated.View style={{ opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
             <View style={styles.dashboardBox} ref={weatherCardRef}>
               <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 12, color: '#333' }}>
@@ -1528,6 +1589,12 @@ export default function App() {
                   <Text style={styles.detailGridLabel}>PM10 — pyły zawieszone</Text>
                   <Text style={styles.detailGridValue}>{weather.pm10}</Text>
                 </View>
+                <View style={styles.detailGridItem}>
+                  <Text style={styles.detailGridLabel}>🌾 Pyłki</Text>
+                  <Text style={[styles.detailGridValue, { color: weather.pollenColor || '#999', fontSize: (weather.pollen || '').length > 14 ? 13 : 16 }]} numberOfLines={2}>
+                    {weather.pollen || 'Brak danych'}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   style={[styles.detailGridItem, { backgroundColor: weather.aqiColor }]}
                   onPress={() => setShowAQIModal(true)}
@@ -1540,7 +1607,7 @@ export default function App() {
               </View>
             </View>
 
-          </>
+          </Animated.View>
         ) : null}
       </ScrollView>
 
@@ -2006,6 +2073,7 @@ const styles = StyleSheet.create({
     fontSize: 88,
     fontWeight: '200',
     color: '#fff',
+    fontVariant: ['tabular-nums'],
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
