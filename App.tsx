@@ -752,11 +752,10 @@ export default function App() {
         const hRain = parseInt(h.chanceofrain || 0);
         const hWind = parseFloat(h.windspeedKmph || 0);
         const hUV = parseInt(h.uvIndex || 0);
-        const rawTime = parseInt(h.time || 0);
-        const hh = Math.floor(rawTime / 100);
+        const hh = parseInt(h.time.split(':')[0]);
         const hNight = hh < srH || hh >= ssH;
         return {
-          time: `${hh.toString().padStart(2, '0')}:00`,
+          time: h.time,
           temp: `${Math.round(hTemp)}°`,
           feelsLike: `${Math.round(hTemp)}°`,
           icon: getWeatherIconTime(getPolishDesc(h), hNight),
