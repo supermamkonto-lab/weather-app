@@ -1648,33 +1648,32 @@ export default function App() {
                 {weather.forecast.map((day, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={{ width: '48%', backgroundColor: '#fff', borderRadius: 18, padding: 16, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8 }}
+                    style={{ width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}
                     onPress={() => {
                       setSelectedDay(day);
                       setShowForecastModal(false);
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#9aa5b1', letterSpacing: 0.3, marginBottom: 8, textTransform: 'capitalize' }}>
-                      {formatPolishDate(day.date)}
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#9aa5b1', letterSpacing: 0.2, marginBottom: 6 }}>
+                      {formatPolishDate(day.date).split(',')[0]}
                     </Text>
-                    <View style={{ alignItems: 'center', marginVertical: 10 }}>
-                      <WeatherIcon desc={day.description} size={40} />
+                    <View style={{ alignItems: 'center', marginVertical: 8 }}>
+                      <WeatherIcon desc={day.description} size={36} />
                     </View>
-                    <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 10, lineHeight: 16 }}>
+                    <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 8 }}>
                       {day.description}
                     </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
                       <View style={{ alignItems: 'center' }}>
                         <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '600' }}>Maks</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: '#f44336', marginTop: 2 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#f44336', marginTop: 2 }}>
                           {day.maxTemp.replace('°C', '°')}
                         </Text>
                       </View>
-                      <View style={{ width: 1, height: 30, backgroundColor: '#f0f0f0' }} />
                       <View style={{ alignItems: 'center' }}>
                         <Text style={{ fontSize: 10, color: '#9aa5b1', fontWeight: '600' }}>Min</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e90ff', marginTop: 2 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e90ff', marginTop: 2 }}>
                           {day.minTemp.replace('°C', '°')}
                         </Text>
                       </View>
