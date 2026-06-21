@@ -1589,22 +1589,19 @@ export default function App() {
                     return (
                       <TouchableOpacity
                         key={i}
-                        style={{ width: '48%', backgroundColor: '#f8f9fb', borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#f0f0f0' }}
+                        style={{ width: '48%', backgroundColor: '#ffffff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 0, shadowColor: 'rgba(0,0,0,0.10)', shadowOpacity: 1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}
                         onPress={() => setSelectedDay(day)}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#9aa5b1', letterSpacing: 0.3, marginBottom: 8 }}>
-                          {dayName}
-                        </Text>
-                        <WeatherIcon desc={day.description} size={36} />
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#f44336', marginTop: 10 }}>
+                        <Text style={{ fontSize: 32, fontWeight: '700', color: '#1e90ff', marginBottom: 4, letterSpacing: -1 }}>
                           {day.maxTemp.replace('°C', '°')}
                         </Text>
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#1e90ff' }}>
-                          {day.minTemp.replace('°C', '°')}
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#9ca3af', marginBottom: 8 }}>
+                          {dayName}
                         </Text>
-                        <Text style={{ fontSize: 10, color: '#999', marginTop: 8, textAlign: 'center' }}>
-                          {day.description.substring(0, 10)}
+                        <WeatherIcon desc={day.description} size={32} />
+                        <Text style={{ fontSize: 11, fontWeight: '500', color: '#6b7280', marginTop: 8, textAlign: 'center' }}>
+                          {day.description.substring(0, 14)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -2230,13 +2227,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   heroTemp: {
-    fontSize: 88,
-    fontWeight: '200',
+    fontSize: 96,
+    fontWeight: '700',
     color: '#fff',
     fontVariant: ['tabular-nums'],
-    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 10,
+    letterSpacing: -2,
   },
   heroDesc: {
     fontSize: 18,
@@ -2254,9 +2252,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroMeta: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '500',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '400',
   },
   heroMetaDot: {
     fontSize: 14,
@@ -2287,13 +2285,18 @@ const styles = StyleSheet.create({
   quickAction: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    minWidth: 72,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 13,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 76,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255,255,255,0.25)',
+    shadowColor: 'rgba(0,0,0,0.10)',
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
   quickActionEmoji: {
     fontSize: 22,
@@ -2307,7 +2310,9 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontSize: 11,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    marginTop: 2,
+    letterSpacing: 0.3,
   },
   glassCard: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -2383,16 +2388,25 @@ const styles = StyleSheet.create({
   },
   favoriteChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    paddingVertical: 10,
+    marginRight: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255,255,255,0.28)',
+    shadowColor: 'rgba(0,0,0,0.15)',
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   favoriteChipActive: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: '#fff',
+    borderColor: '#fff',
+    shadowColor: 'rgba(30,144,255,0.4)',
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   favoriteChipText: {
     fontSize: 13,
@@ -2467,12 +2481,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 8,
   },
   dashboardItem: {
     width: '48%',
     alignItems: 'center',
-    marginBottom: 10,
-    paddingVertical: 6,
+    marginBottom: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.93)',
+    borderRadius: 13,
+    borderWidth: 0,
+    shadowColor: 'rgba(0,0,0,0.12)',
+    shadowOpacity: 1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   dashboardLargeItem: {
     width: '100%',
@@ -2481,16 +2505,16 @@ const styles = StyleSheet.create({
   },
   dashboardLabel: {
     fontSize: 10,
-    color: '#9aa5b1',
-    marginBottom: 5,
+    color: '#9ca3af',
+    marginBottom: 6,
     textAlign: 'center',
     fontWeight: '700',
     letterSpacing: 0.8,
   },
   dashboardValue: {
-    fontSize: 23,
-    fontWeight: '800',
-    color: '#1a1a1a',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },
@@ -2763,25 +2787,30 @@ const styles = StyleSheet.create({
   },
   detailGridItem: {
     width: '48%',
-    backgroundColor: '#f5f7fa',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    marginBottom: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 13,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 10,
     alignItems: 'center',
+    shadowColor: 'rgba(0,0,0,0.10)',
+    shadowOpacity: 1,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   detailGridLabel: {
     fontSize: 10,
-    color: '#9aa5b1',
-    marginBottom: 5,
+    color: '#9ca3af',
+    marginBottom: 6,
     fontWeight: '700',
     letterSpacing: 0.6,
     textAlign: 'center',
   },
   detailGridValue: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1a1a1a',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
     textAlign: 'center',
   },
   forecastTitle: {
