@@ -541,52 +541,75 @@ export default function App() {
     setError('');
 
     try {
-      // Parallel API calls for faster loading
-      // UWAGA: wttr.in zwraca HTTP 500 dla URL z nieznanym parametrem (np. cache-bust _=).
-      // Dlatego NIE dodajemy parametru do URL — świeżość wymuszamy nagłówkiem no-store,
-      // który OkHttp respektuje (offline = pewny błąd → tryb offline), a wttr.in akceptuje (200).
-      const wttrPromise = axios.get(
+      // PHASE 6C: Get coordinates via wttr.in location lookup (minimal)
+      const locationPromise = axios.get(
         `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=pl`,
-        { timeout: 10000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
+        { timeout: 5000, headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' } }
       );
 
-      let aqiResponse: any = null;
-      const wttrResponse = await wttrPromise;
-
-      // Validate API response structure
-      if (!wttrResponse.data?.current_condition?.[0] || !wttrResponse.data?.nearest_area?.[0]) {
-        throw new Error('Invalid wttr.in response structure');
+      const locationResponse = await locationPromise;
+      if (!locationResponse.data?.nearest_area?.[0]) {
+        throw new Error('Could not get location');
       }
 
-      const current = wttrResponse.data.current_condition[0];
-      const location = wttrResponse.data.nearest_area[0];
-      const todayHourly = wttrResponse.data.weather?.[0]?.hourly || [];
-      const astronomy = wttrResponse.data.weather?.[0]?.astronomy?.[0];
+      const location = locationResponse.data.nearest_area[0];
       const lat = location.latitude;
       const lon = location.longitude;
 
       if (!lat || !lon) {
-        throw new Error('Could not extract coordinates from response');
+        throw new Error('Could not extract coordinates');
       }
 
-      // PHASE 6B: Fetch forecast from Open-Meteo (6 dni instead of wttr.in's 3)
+      // PHASE 6C: Fetch ALL weather from Open-Meteo (current, hourly, daily)
+      let openMeteoResponse: any = null;
       let forecastDays: any[] = [];
+      let todayHourly: any[] = [];
+      let sunriseStr = '';
+      let sunsetStr = '';
+      let currentData: any = {};
+
       try {
-        const forecastResponse = await axios.get(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe/Warsaw&forecast_days=6`,
-          { timeout: 5000 }
+        openMeteoResponse = await axios.get(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,pressure_msl,cloud_cover,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe/Warsaw&forecast_days=6`,
+          { timeout: 10000 }
         );
-        if (forecastResponse.data?.daily) {
-          const daily = forecastResponse.data.daily;
-          forecastDays = daily.time.map((date: string, idx: number) => ({
-            date,
-            maxtempC: Math.round(daily.temperature_2m_max[idx]),
-            mintempC: Math.round(daily.temperature_2m_min[idx]),
-            weatherCode: daily.weather_code[idx],
-          }));
+
+        if (openMeteoResponse.data) {
+          const data = openMeteoResponse.data;
+
+          // Current weather
+          currentData = data.current || {};
+
+          // Hourly - map to wttr.in-like structure (current day only = first 24h)
+          if (data.hourly) {
+            const hourlyData = data.hourly;
+            todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => ({
+              time: time.replace('T', '').replace(':', '').substring(8, 12), // Convert to HHMM format
+              tempC: hourlyData.temperature_2m[idx],
+              chanceofrain: hourlyData.precipitation_probability[idx],
+              windspeedKmph: hourlyData.wind_speed_10m[idx],
+              uvIndex: hourlyData.uv_index[idx],
+              weatherCode: hourlyData.weather_code[idx],
+            }));
+          }
+
+          // Daily - forecast
+          if (data.daily) {
+            const daily = data.daily;
+            forecastDays = daily.time.map((date: string, idx: number) => ({
+              date,
+              maxtempC: Math.round(daily.temperature_2m_max[idx]),
+              mintempC: Math.round(daily.temperature_2m_min[idx]),
+              weatherCode: daily.weather_code[idx],
+            }));
+            // Get sunrise/sunset from first day (today)
+            sunriseStr = daily.sunrise?.[0] || '';
+            sunsetStr = daily.sunset?.[0] || '';
+          }
         }
       } catch (err) {
-        console.warn('Open-Meteo forecast fetch failed, forecast will be empty');
+        console.warn('Open-Meteo fetch failed:', err);
+        throw new Error('Open-Meteo API failed');
       }
 
       // Fetch AQI data in parallel (non-blocking)
@@ -651,15 +674,15 @@ export default function App() {
         // Jeśli API fails, wartości domyślne
       }
 
-      const tempC = current.temp_C;
-      const windKmph = current.windspeedKmph;
-      const humidity = current.humidity;
-      const feelsLikeTemp = current.FeelsLikeC !== undefined ? String(current.FeelsLikeC) : calculateFeelsLike(tempC, humidity, windKmph);
+      const tempC = currentData.temperature_2m || 0;
+      const windKmph = currentData.wind_speed_10m || 0;
+      const humidity = currentData.relative_humidity_2m || 0;
+      const feelsLikeTemp = currentData.apparent_temperature !== undefined ? String(Math.round(currentData.apparent_temperature)) : calculateFeelsLike(tempC, humidity, windKmph);
       const now = new Date();
       const lastUpdate = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
-      const sunriseHour = parseHourFromTime(astronomy?.sunrise || '');
-      const sunsetHour = parseHourFromTime(astronomy?.sunset || '');
+      const sunriseHour = parseHourFromTime(sunriseStr);
+      const sunsetHour = parseHourFromTime(sunsetStr);
       const srH = sunriseHour >= 0 ? sunriseHour : 5;
       const ssH = sunsetHour >= 0 ? sunsetHour : 21;
 
@@ -674,7 +697,7 @@ export default function App() {
         return {
           time: `${hh.toString().padStart(2, '0')}:00`,
           temp: `${Math.round(hTemp)}°`,
-          feelsLike: `${h.FeelsLikeC || Math.round(hTemp)}°`,
+          feelsLike: `${Math.round(hTemp)}°`,
           icon: getWeatherIconTime(getPolishDesc(h), hNight),
           cond: getPolishDesc(h),
           night: hNight,
@@ -697,20 +720,20 @@ export default function App() {
       });
 
       const weatherData = {
-        temp: `${tempC}°C`,
-        description: getPolishDesc(current),
+        temp: `${Math.round(tempC)}°C`,
+        description: getPolishDesc(currentData),
         location: `${cityName.trim()}, ${translateCountry(location.country[0].value)}`,
         feelsLike: `${feelsLikeTemp}°C`,
         humidity: `${humidity}%`,
-        windSpeed: `${windKmph} km/h`,
-        icon: getWeatherIcon(current.weatherDesc[0].value),
+        windSpeed: `${Math.round(windKmph)} km/h`,
+        icon: getWeatherIcon(getPolishDesc(currentData)),
         forecast,
         hourly,
-        pressure: `${current.pressure_mb || current.pressure || '—'} mb`,
-        visibility: `${current.visibility_km || current.visibility || '—'} km`,
-        uvIndex: `${current.uv_index || current.uvIndex || '—'}`,
-        sunrise: astronomy.sunrise,
-        sunset: astronomy.sunset,
+        pressure: `${Math.round(currentData.pressure_msl || 0)} hPa`,
+        visibility: `—`,
+        uvIndex: `${Math.round(currentData.uv_index || 0)}`,
+        sunrise: sunriseStr.substring(11, 16),
+        sunset: sunsetStr.substring(11, 16),
         pm25,
         pm10,
         aqi,
