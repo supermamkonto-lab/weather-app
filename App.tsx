@@ -471,6 +471,7 @@ export default function App() {
   const contentAnim = React.useRef(new Animated.Value(0)).current;
   const haptic = () => { try { Vibration.vibrate(8); } catch {} };
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [detailTile, setDetailTile] = useState<{ title: string; value: string; body: string; color: string } | null>(null);
   const [cachedWeather, setCachedWeather] = useState<Weather | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
@@ -1538,28 +1539,24 @@ export default function App() {
                     const isToday = dayDate.toDateString() === today.toDateString();
                     const isTomorrow = dayDate.toDateString() === new Date(today.getTime() + 86400000).toDateString();
                     const dayName = isToday ? 'Dziś' : isTomorrow ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'short' });
+                    const fullDayName = isToday ? 'Dziś' : isTomorrow ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+                    const maxN = parseInt(day.maxTemp) || 0;
+                    const minN = parseInt(day.minTemp) || 0;
+                    const isHighlighted = isToday || isTomorrow;
                     return (
                       <TouchableOpacity
                         key={i}
-                        style={{ width: '48%', backgroundColor: '#ffffff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 0, shadowColor: 'rgba(0,0,0,0.10)', shadowOpacity: 1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}
+                        style={{ width: '48%', backgroundColor: isHighlighted ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.07)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: isHighlighted ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.10)', marginBottom: 0 }}
                         onPress={() => setSelectedDay(day)}
-                        activeOpacity={0.7}
+                        activeOpacity={0.72}
                       >
-                        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 }}>
-                          <Text style={{ fontSize: 32, fontWeight: '700', color: '#1e90ff', letterSpacing: -1 }}>
-                            {day.maxTemp.replace('°C', '°')}
-                          </Text>
-                          <Text style={{ fontSize: 16, fontWeight: '600', color: '#9ca3af', marginLeft: 6 }}>
-                            {day.minTemp.replace('°C', '°')}
-                          </Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: isHighlighted ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.55)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{dayName}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 }}>
+                          <Text style={{ fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>{day.maxTemp.replace('°C', '°')}</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '500', color: 'rgba(255,255,255,0.45)', marginLeft: 5 }}>{day.minTemp.replace('°C', '°')}</Text>
                         </View>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#9ca3af', marginBottom: 8 }}>
-                          {dayName}
-                        </Text>
-                        <WeatherIcon desc={day.description} size={32} />
-                        <Text style={{ fontSize: 11, fontWeight: '500', color: '#6b7280', marginTop: 8, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">
-                          {day.description}
-                        </Text>
+                        <WeatherIcon desc={day.description} size={28} />
+                        <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 6, lineHeight: 15 }} numberOfLines={2}>{day.description}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1590,58 +1587,100 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
-              {/* Szczegóły pogody — mini-karty */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {/* Szczegóły pogody — srebrne mini-karty */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, paddingBottom: 8 }}>
                 {(() => {
                   const uvN = parseInt(weather.uvIndex) || 0;
                   const pressN = parseInt(weather.pressure) || 0;
                   const visN = parseFloat(weather.visibility) || 0;
-
                   const uvCtx = uvN <= 2 ? 'Niski' : uvN <= 5 ? 'Umiarkowany' : uvN <= 7 ? 'Wysoki' : uvN <= 10 ? 'Bardzo wysoki' : 'Ekstremalny';
                   const pressCtx = pressN < 1000 ? 'Niskie' : pressN <= 1013 ? 'Normalne' : 'Wysokie';
                   const visCtx = weather.visibility === 'Brak danych' ? '' : visN < 5 ? 'Ograniczona' : visN < 10 ? 'Umiarkowana' : visN < 20 ? 'Dobra' : 'Doskonała';
+                  const pm25N = parseFloat(weather.pm25) || 0;
+                  const pm10N = parseFloat(weather.pm10) || 0;
 
-                  const card = { width: '48%' as any, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, elevation: 6, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 12, borderWidth: 0.5, borderColor: 'rgba(255,220,130,0.18)' };
+                  const silverCard: any = { width: '48%', backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' };
 
-                  const items = [
-                    { emoji: '🌡', iconBg: '#bfdbfe', label: 'Ciśnienie',    value: weather.pressure.replace(' mb', ' hPa'), context: pressCtx },
-                    { emoji: '👁',  iconBg: '#a5f3fc', label: 'Widoczność',  value: weather.visibility,                       context: visCtx },
-                    { emoji: '☀️', iconBg: '#fde68a', label: 'Indeks UV',    value: weather.uvIndex,                          context: uvCtx },
-                    { emoji: '⏳', iconBg: '#ddd6fe', label: 'Długość dnia', value: calculateDayLength(weather.sunrise, weather.sunset), context: '' },
-                    { emoji: '🌅', iconBg: '#fed7aa', label: 'Wschód',       value: weather.sunrise || 'N/A',                 context: '' },
-                    { emoji: '🌇', iconBg: '#fbcfe8', label: 'Zachód',       value: weather.sunset  || 'N/A',                 context: '' },
-                    { emoji: '💨', iconBg: '#a7f3d0', label: 'PM2.5',        value: weather.pm25,                             context: '' },
-                    { emoji: '💨', iconBg: '#a7f3d0', label: 'PM10',         value: weather.pm10,                             context: '' },
-                    { emoji: '🌿', iconBg: '#86efac', label: 'Pyłki',        value: weather.pollen  || 'Brak danych',         context: '' },
+                  const items: Array<{ emoji: string; label: string; value: string; context: string; body: string; color: string }> = [
+                    {
+                      emoji: '🌡', label: 'Ciśnienie', value: weather.pressure.replace(' mb', ' hPa'), context: pressCtx, color: '#60a5fa',
+                      body: pressN < 1000
+                        ? `${pressCtx} ciśnienie (${pressN} hPa) może powodować bóle głowy i zmęczenie. Warto odpocząć i nawodnić się.`
+                        : pressN <= 1013
+                        ? `Ciśnienie normalne (${pressN} hPa) — optymalne dla samopoczucia. Typowe warunki dla tej pory roku.`
+                        : `Wysokie ciśnienie (${pressN} hPa) — zazwyczaj oznacza pogodę słoneczną i stabilną. Dobre warunki do aktywności.`,
+                    },
+                    {
+                      emoji: '👁', label: 'Widoczność', value: weather.visibility, context: visCtx, color: '#67e8f9',
+                      body: visN < 5
+                        ? `Ograniczona widoczność (${weather.visibility}) — mgła lub zamglenie. Ostrożnie przy prowadzeniu. Unikaj szybkiej jazdy.`
+                        : visN < 10
+                        ? `Umiarkowana widoczność (${weather.visibility}). Nieznaczne zamglenie, ale warunki do prowadzenia pojazdu są bezpieczne.`
+                        : `Dobra widoczność (${weather.visibility}) — czyste powietrze, idealne warunki do jazdy i aktywności na zewnątrz.`,
+                    },
+                    {
+                      emoji: '☀️', label: 'Indeks UV', value: weather.uvIndex, context: uvCtx, color: '#fbbf24',
+                      body: uvN <= 2
+                        ? `UV ${uvN} — niski. Ochrona przeciwsłoneczna nie jest wymagana. Bezpieczne warunki nawet dla skóry wrażliwej.`
+                        : uvN <= 5
+                        ? `UV ${uvN} — umiarkowany. Zalecany krem SPF 30+ przy dłuższym przebywaniu na zewnątrz. Okulary przeciwsłoneczne wskazane.`
+                        : uvN <= 7
+                        ? `UV ${uvN} — wysoki. Koniecznie krem SPF 50+, okulary, nakrycie głowy. Unikaj słońca 11:00–15:00.`
+                        : `UV ${uvN} — bardzo wysoki/ekstremalny! Minimalizuj ekspozycję na słońce. SPF 50+, długie rękawy, kapelusz.`,
+                    },
+                    {
+                      emoji: '⏳', label: 'Długość dnia', value: calculateDayLength(weather.sunrise, weather.sunset), context: '', color: '#a78bfa',
+                      body: `Dziś słońce świeci przez ${calculateDayLength(weather.sunrise, weather.sunset)}. Wschód: ${weather.sunrise || 'N/A'}, zachód: ${weather.sunset || 'N/A'}. Maksymalne nasłonecznienie między 11:00 a 14:00.`,
+                    },
+                    {
+                      emoji: '🌅', label: 'Wschód', value: weather.sunrise || 'N/A', context: '', color: '#fb923c',
+                      body: `Słońce wschodzi o ${weather.sunrise || 'N/A'}. Pierwsze godziny dnia to najchłodniejsza pora — temperatura jest wtedy najniższa przed wzrostem w ciągu dnia.`,
+                    },
+                    {
+                      emoji: '🌇', label: 'Zachód', value: weather.sunset || 'N/A', context: '', color: '#f472b6',
+                      body: `Słońce zachodzi o ${weather.sunset || 'N/A'}. Po zmierzchu temperatura spada szybko — warto zabrać kurtkę na wieczorne wyjście.`,
+                    },
+                    {
+                      emoji: '🔬', label: 'PM2.5', value: weather.pm25, context: pm25N < 12 ? 'Dobra' : pm25N < 35 ? 'Umiarkowana' : 'Zła', color: '#34d399',
+                      body: pm25N < 12
+                        ? `PM2.5 = ${weather.pm25} μg/m³ — poziom dobry. Drobne pyły poniżej normy WHO. Bezpieczne dla wszystkich, w tym dzieci i seniorów.`
+                        : pm25N < 35
+                        ? `PM2.5 = ${weather.pm25} μg/m³ — poziom umiarkowany. Osoby z astmą lub chorobami układu oddechowego powinny ograniczyć wysiłek na zewnątrz.`
+                        : `PM2.5 = ${weather.pm25} μg/m³ — poziom podwyższony! Ogranicz przebywanie na zewnątrz. Rozważ maskę FFP2 przy długim pobycie.`,
+                    },
+                    {
+                      emoji: '🌫', label: 'PM10', value: weather.pm10, context: pm10N < 20 ? 'Dobra' : pm10N < 50 ? 'Umiarkowana' : 'Zła', color: '#6ee7b7',
+                      body: pm10N < 20
+                        ? `PM10 = ${weather.pm10} μg/m³ — poziom dobry. Większe cząsteczki pyłu w normie. Brak zagrożenia dla zdrowia.`
+                        : pm10N < 50
+                        ? `PM10 = ${weather.pm10} μg/m³ — umiarkowany. Przy wrażliwości dróg oddechowych rozważ ograniczenie aktywności na zewnątrz.`
+                        : `PM10 = ${weather.pm10} μg/m³ — podwyższony. Ogranicz wysiłek fizyczny na zewnątrz, zwłaszcza dzieci i seniorzy.`,
+                    },
+                    {
+                      emoji: '🌿', label: 'Pyłki', value: weather.pollen || 'Brak danych', context: '', color: '#86efac',
+                      body: weather.pollen
+                        ? `Stężenie pyłków: ${weather.pollen}. Alergicy powinni mieć przy sobie leki. Okna zamknięte w godzinach porannych (5:00–10:00), gdy stężenie najwyższe.`
+                        : 'Dane o pyłkach niedostępne dla tej lokalizacji. W sezonie pylenia (marzec–wrzesień) alergicy powinni sprawdzać prognozy na lokalnych serwisach.',
+                    },
                   ];
 
                   return items.map((item, i) => (
-                    <View key={i} style={card}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: item.iconBg, justifyContent: 'center', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
-                        </View>
-                        <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{item.label}</Text>
-                      </View>
-                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#1f2937' }} numberOfLines={2}>{item.value}</Text>
-                      {item.context ? <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{item.context}</Text> : null}
-                    </View>
+                    <TouchableOpacity key={i} style={silverCard} onPress={() => { haptic(); setDetailTile({ title: item.label, value: item.value, body: item.body, color: item.color }); }} activeOpacity={0.72}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>{item.emoji} {item.label}</Text>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 }} numberOfLines={2}>{item.value}</Text>
+                      {item.context ? <Text style={{ fontSize: 11, color: item.color, fontWeight: '600' }}>{item.context}</Text> : <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>dotknij →</Text>}
+                    </TouchableOpacity>
                   ));
                 })()}
 
                 <TouchableOpacity
-                  style={{ width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.10, shadowRadius: 10 }}
+                  style={{ width: '48%', backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
                   onPress={() => setShowAQIModal(true)}
-                  activeOpacity={0.75}
+                  activeOpacity={0.72}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: weather.aqiColor + '30', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>🌬</Text>
-                    </View>
-                    <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>Powietrze</Text>
-                  </View>
-                  <Text style={{ fontSize: 20, fontWeight: '700', color: weather.aqiColor }}>{weather.aqi}</Text>
-                  <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Szczegóły →</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>🌬 Powietrze</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: weather.aqiColor, marginBottom: 4 }}>{weather.aqi}</Text>
+                  <Text style={{ fontSize: 11, color: weather.aqiColor, fontWeight: '600' }}>szczegóły →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1650,6 +1689,28 @@ export default function App() {
         ) : null}
       </ScrollView>
 
+
+      {/* Detail Tile Modal */}
+      {detailTile && (
+        <Modal visible={true} transparent animationType="slide" onRequestClose={() => setDetailTile(null)}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }} activeOpacity={1} onPress={() => setDetailTile(null)}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={{ backgroundColor: '#1a2b3c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                  <View style={{ width: 6, height: 24, borderRadius: 3, backgroundColor: detailTile.color, marginRight: 12 }} />
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff' }}>{detailTile.title}</Text>
+                </View>
+                <Text style={{ fontSize: 40, fontWeight: '800', color: detailTile.color, letterSpacing: -1, marginBottom: 16 }}>{detailTile.value}</Text>
+                <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 23 }}>{detailTile.body}</Text>
+                <TouchableOpacity style={{ marginTop: 24, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 14, alignItems: 'center' }} onPress={() => setDetailTile(null)}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Zamknij</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       {/* Forecast Modal - 3 days selection */}
       <Modal
@@ -2499,7 +2560,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2e3f52',
     borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
