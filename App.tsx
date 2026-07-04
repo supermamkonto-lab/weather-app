@@ -1249,6 +1249,21 @@ export default function App() {
           </TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'transparent' }}>
+          {weather && (
+            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowForecastModal(true); setShowSearch(false); }}>
+              <Text style={styles.menuActionText}>Prognoza 7 dni</Text>
+            </TouchableOpacity>
+          )}
+          {weather && (
+            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowICMInterpretation(false); setShowICMModal(true); setShowSearch(false); }}>
+              <Text style={styles.menuActionText}>Meteogram ICM</Text>
+            </TouchableOpacity>
+          )}
+          {weather && (
+            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowSportModal(true); setShowSearch(false); }}>
+              <Text style={styles.menuActionText}>Sport / Rower</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowHistory(true); setShowSearch(false); }}>
             <Text style={styles.menuActionText}>Historia</Text>
           </TouchableOpacity>
@@ -1256,14 +1271,21 @@ export default function App() {
             <Text style={styles.menuActionText}>Porównaj miasta</Text>
           </TouchableOpacity>
           {weather && (
-            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowSportModal(true); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>Sport / Rower</Text>
-            </TouchableOpacity>
-          )}
-          {weather && (
             <TouchableOpacity style={styles.menuActionBtn} onPress={() => { shareWeather(); setShowSearch(false); }}>
               <Text style={styles.menuActionText}>Udostępnij</Text>
             </TouchableOpacity>
+          )}
+          {favorites.length > 0 && (
+            <View style={{ width: '100%', marginTop: 4 }}>
+              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1, marginBottom: 6, marginLeft: 2 }}>ULUBIONE MIASTA</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {favorites.map((fav, idx) => (
+                  <TouchableOpacity key={idx} style={[styles.menuActionBtn, city === fav && { borderColor: '#60b4ff' }]} onPress={() => { haptic(); fetchWeather(fav); setShowSearch(false); }}>
+                    <Text style={[styles.menuActionText, city === fav && { color: '#60b4ff' }]}>{fav}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           )}
           <TouchableOpacity
             style={[styles.menuActionBtn, { borderColor: notificationsEnabled ? '#4caf50' : 'rgba(255,255,255,0.5)' }]}
@@ -1330,38 +1352,6 @@ export default function App() {
         )}
 
 
-        {/* Ulubione miasta */}
-        <Text style={styles.favoritesTitle}>ULUBIONE MIASTA</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
-          {favorites.map((fav, idx) => {
-            const favData = favoritesWeather[fav];
-            const isActive = city === fav;
-            return (
-              <TouchableOpacity
-                key={idx}
-                style={[styles.favoriteChip, isActive && styles.favoriteChipActive]}
-                onPress={() => { haptic(); fetchWeather(fav); }}
-              >
-                <Text style={[styles.favoriteChipText, isActive && styles.favoriteChipTextActive]}>
-                  {fav}
-                </Text>
-                {favData && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? '#0d47a1' : '#fff' }}>
-                      {favData.temp}
-                    </Text>
-                    <View style={{
-                      width: 7, height: 7, borderRadius: 4,
-                      backgroundColor: favData.aqiColor,
-                      marginLeft: 4,
-                      borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.15)',
-                    }} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
 
         {/* BANNER ZAUFANIA OFFLINE — użytkownik wie, że aplikacja działa */}
         {isOffline && weather && (
@@ -1378,37 +1368,6 @@ export default function App() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {/* SZYBKIE AKCJE — guziki widoczne (top app UX) */}
-        {weather && !loading && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14, flexGrow: 0 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowForecastModal(true); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="calendar" size={22} /></View>
-                <Text style={styles.quickActionText}>Prognoza</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowICMInterpretation(false); setShowICMModal(true); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="chart" size={22} /></View>
-                <Text style={styles.quickActionText}>ICM</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowSportModal(true); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="bike" size={22} /></View>
-                <Text style={styles.quickActionText}>Sport</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowComparison(true); fetchComparisonData(); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="compare" size={22} /></View>
-                <Text style={styles.quickActionText}>Porównaj</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); setShowHistory(true); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="history" size={22} /></View>
-                <Text style={styles.quickActionText}>Historia</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.quickAction} onPress={() => { haptic(); shareWeather(); }}>
-                <View style={styles.quickActionIcon}><UiIcon name="share" size={22} /></View>
-                <Text style={styles.quickActionText}>Udostępnij</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        )}
 
         {loading ? (
           <ActivityIndicator size="large" color="#fff" style={styles.loader} />
@@ -1416,63 +1375,78 @@ export default function App() {
           <Animated.View style={{ opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
             <View style={styles.dashboardBox} ref={weatherCardRef}>
-              <SectionHeader title="Przegląd" accent={theme.accent} dark />
-
-              {/* Opady + Wiatr + AQI */}
-              <View style={styles.dashboardGrid}>
-                <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>OPADY</Text>
-                  <Text style={styles.dashboardValue}>
-                    {(() => {
-                      const desc = weather.description.toLowerCase();
-                      if (desc.includes('deszcz') || desc.includes('rain')) return 'tak';
-                      if (desc.includes('burza') || desc.includes('storm') || desc.includes('thunder')) return 'możliwe';
-                      if (desc.includes('śnieg') || desc.includes('snow')) return 'śnieg';
-                      return 'brak';
-                    })()}
-                  </Text>
-                </View>
-                <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>WIATR</Text>
-                  <Text style={styles.dashboardValue} numberOfLines={1}>{weather.windSpeed}</Text>
-                </View>
-                <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>WILGOTNOŚĆ</Text>
-                  <Text style={styles.dashboardValue}>{weather.humidity}</Text>
-                </View>
-                <View style={styles.dashboardItem}>
-                  <Text style={styles.dashboardLabel}>POWIETRZE</Text>
-                  <Text style={[styles.dashboardValue, { color: weather.aqiColor, fontSize: weather.aqi.length > 8 ? 14 : 22 }]}>
-                    {weather.aqi}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Komfort + Jutro */}
               {(() => {
                 const score = calculateWeatherScore(weather);
+                const windNum = parseInt(weather.windSpeed) || 0;
+                const humNum = parseInt(weather.humidity) || 0;
+                const desc = weather.description.toLowerCase();
+                const rainText = desc.includes('deszcz') || desc.includes('rain') ? 'opady' :
+                  desc.includes('burza') || desc.includes('storm') ? 'burza' :
+                  desc.includes('śnieg') || desc.includes('snow') ? 'śnieg' :
+                  desc.includes('mżawka') ? 'mżawka' : 'bez opadów';
+                const windLabel = windNum < 10 ? 'cicho' : windNum < 20 ? 'umiarkowany' : windNum < 35 ? 'silny' : 'bardzo silny';
+                const humLabel = humNum < 40 ? 'suche' : humNum < 65 ? 'optymalne' : humNum < 80 ? 'wilgotne' : 'bardzo wilgotne';
+                const rainIcon = desc.includes('deszcz') || desc.includes('rain') ? '🌧' :
+                  desc.includes('burza') ? '⛈' : desc.includes('śnieg') ? '🌨' : '☀️';
+                const komfortLabel = score >= 85 ? 'doskonały' : score >= 70 ? 'dobry' : score >= 50 ? 'umiarkowany' : 'niska';
+                const tileStyle = (bg: string) => ({
+                  flex: 1, backgroundColor: bg, borderRadius: 18, padding: 14,
+                  minHeight: 108, justifyContent: 'space-between' as const,
+                  elevation: 6, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+                });
+                const labelStyle = { fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: '800' as const, letterSpacing: 1.2 };
+                const valueStyle = { fontSize: 28, fontWeight: '800' as const, color: '#fff', lineHeight: 33 };
+                const subStyle = { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500' as const };
                 return (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderRadius: 13, elevation: 3, shadowColor: '#0d1f33', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
-                      <Text style={styles.dashboardLabel}>KOMFORT</Text>
-                      <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 24 }]}>
-                        {score}/100
-                      </Text>
+                  <View style={{ gap: 10 }}>
+                    {/* Rząd 1: KOMFORT (złoto) + JUTRO (granat) */}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <View style={tileStyle('#b5862a')}>
+                        <Text style={labelStyle}>⭐ KOMFORT</Text>
+                        <Text style={valueStyle}>{score}<Text style={{ fontSize: 16 }}>/100</Text></Text>
+                        <Text style={subStyle}>{komfortLabel}</Text>
+                      </View>
+                      <View style={tileStyle('#1e3a8a')}>
+                        <Text style={labelStyle}>📅 JUTRO</Text>
+                        {weather.forecast?.[1] ? (
+                          <Text style={valueStyle}>{weather.forecast[1].maxTemp.replace('°C','°')}</Text>
+                        ) : weather.forecast?.[0] ? (
+                          <Text style={valueStyle}>{weather.forecast[0].maxTemp.replace('°C','°')}</Text>
+                        ) : (
+                          <Text style={[valueStyle, { fontSize: 16 }]}>brak</Text>
+                        )}
+                        <Text style={subStyle}>{weather.forecast?.[1]?.description?.split(' ').slice(0,2).join(' ') || '—'}</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderRadius: 13, elevation: 3, shadowColor: '#0d1f33', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
-                      <Text style={styles.dashboardLabel}>JUTRO</Text>
-                      {weather.forecast?.[0] ? (
-                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 20 }]}>
-                          {weather.forecast[0].maxTemp.replace('°C','°')}/{weather.forecast[0].minTemp.replace('°C','°')}
-                        </Text>
-                      ) : (
-                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>brak</Text>
-                      )}
+                    {/* Rząd 2: WIATR (stalowy błękit) + WILGOTNOŚĆ (morski) */}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <View style={tileStyle('#0c4a6e')}>
+                        <Text style={labelStyle}>💨 WIATR</Text>
+                        <Text style={valueStyle} numberOfLines={1}>{weather.windSpeed}</Text>
+                        <Text style={subStyle}>{windLabel}</Text>
+                      </View>
+                      <View style={tileStyle('#065f46')}>
+                        <Text style={labelStyle}>💧 WILGOTNOŚĆ</Text>
+                        <Text style={valueStyle}>{weather.humidity}</Text>
+                        <Text style={subStyle}>{humLabel}</Text>
+                      </View>
+                    </View>
+                    {/* Rząd 3: OPADY (indygo) + POWIETRZE (kolor AQI) */}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <View style={tileStyle('#3730a3')}>
+                        <Text style={labelStyle}>{rainIcon} OPADY</Text>
+                        <Text style={valueStyle}>{rainText}</Text>
+                        <Text style={subStyle}>dziś</Text>
+                      </View>
+                      <View style={tileStyle(weather.aqiColor === '#4caf50' ? '#14532d' : weather.aqiColor === '#ff9800' ? '#7c2d12' : weather.aqiColor === '#f44336' ? '#7f1d1d' : '#1e3a5f')}>
+                        <Text style={labelStyle}>🌫 POWIETRZE</Text>
+                        <Text style={[valueStyle, { fontSize: weather.aqi.length > 7 ? 18 : 24 }]}>{weather.aqi}</Text>
+                        <Text style={subStyle}>jakość powietrza</Text>
+                      </View>
                     </View>
                   </View>
                 );
               })()}
-
             </View>
 
             {/* GODZINOWY INDEKS KOMFORTU */}
