@@ -3,9 +3,12 @@
 **This file directs every new Claude session on how to work with this project.**
 
 **Date created:** 2026-06-22  
-**Project:** Weather App (React Native)  
-**Current Phase:** PHASE 7A — ✅ COMPLETE (Documentation & Recovery)  
-**Next Phase:** PHASE 7B (Product Development, 4-6 hours) — ⏳ AWAITING MASTER ADMIN
+**Updated:** 2026-07-04 — WeatherApp V2 filozofia zatwierdzona  
+**Project:** WeatherApp — Weather Experience (produkt premium)  
+**Current Phase:** PHASE V2 ALPHA — żywy Hero + AI Advice  
+**Restore point:** git tag `v1-stable-pre-v2` (V1 stabilna, nieruszona)  
+**Design System:** `docs/DESIGN_SYSTEM_V2.md` — OBOWIĄZUJĄCY  
+**Poprzedni DS:** `docs/DESIGN_SYSTEM.md` — archiwum (nie usuwać)
 
 ---
 
