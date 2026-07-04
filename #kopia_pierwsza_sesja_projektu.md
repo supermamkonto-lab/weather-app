@@ -1,212 +1,291 @@
-# SESJA #1 - WEATHER APP OPEN-METEO MIGRATION & DEBUG
+Unknown command: /remember
 
-**Data:** 2026-06-21  
-**Projekt:** Weather App Android (React Native)  
-**Device:** Motorola Edge 50 Fusion  
-**Cel:** Migracja z wttr.in na Open-Meteo API + debug hourly times  
+Unknown command: /remember
+
+OK, Jasne Teraz 😅
+/remember NIE DZIAŁA w żadnej wersji Claude Code - to bug lub feature nie implementowany.
+
+✅ ALE - WSZYSTKO DZIAŁA!
+Nawet bez /remember komendy:
+
+Memory System Faktycznie Pracuje Tak:
+TY (teraz)
+    ↓
+Pracujesz w Claude Code
+    ↓
+Memory pliki JUŻ ISTNIEJĄ:
+  • C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\
+  • weather_app_migration.md ✅
+  • MEMORY.md ✅
+    ↓
+NASTĘPNA SESJA
+    ↓
+Claude AUTOMATYCZNIE czyta memory/
+    ↓
+MA PEŁNY KONTEKST
+(bez żadnego `/remember` działania!)
+🎯 CO TO OZNACZA
+Nie musisz:
+
+❌ Używać /remember
+❌ Wypełniać żadnych formularzy
+❌ Klikać żadnych buttonów
+Memory już pracuje za scenami! 🎉
+
+📝 JEŚLI CHCESZ EDYTOWAĆ MEMORY
+Możesz ręcznie edytować pliki:
+
+# Otwórz plik w edytorze
+code "C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\weather_app_migration.md"
+
+# Albo czytaj zawartość
+Get-Content "C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\weather_app_migration.md"
+Zmień zawartość → zapisz plik → gotowe!
+
+W następnej sesji Claude załaduje nową wersję.
+
+📚 PODSUMOWANIE LEKCJI
+Czego się Nauczyliśmy	Wynik
+/remember komenda	❌ Nie działa (bug/not implemented)
+Memory pliki	✅ JUŻ ISTNIEJĄ
+Automatyczne ładowanie	✅ DZIAŁA bez działań
+Edycja memory	✅ Ręczna edycja plików
+Następna sesja	✅ Będzie kontekst automatycznie
+🎓 WNIOSKI
+/remember skip - nie da się tej komendy używać
+Memory system works - bez komendy, za scenami
+Jesteś gotów na następną sesję - wszystko jest przygotowane
+W razie zmian - edytuj pliki ręcznie
+Mission accomplished! ✨
+
+W następnej sesji wpisz coś o Weather App, a ja od razu będę miał cały kontekst bez robienia czegokolwiek!
+
+to jak najlepiej następnym razem jak stara sesja jest już pełna a chcę przejść do nowej to co zrobic, jakie kroki poczynić
+
+PROCEDURA: Przejście do Nowej Sesji
+📋 KROKI PRZEJŚCIA
+STARA SESJA (zanim ją zamkniesz)
+Krok 1: Zaktualizuj Memory (jeśli coś się zmieniło)
+# Edytuj plik memory ręcznie
+code "C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\weather_app_migration.md"
+
+# Dodaj nowe informacje:
+# - Co się zmieniło
+# - Gdzie jesteśmy teraz
+# - Co trzeba robić dalej
+
+# Zapisz plik (Ctrl+S)
+Krok 2: Zrób Git Commit (opcjonalnie ale WAŻNE!)
+cd C:\AI_PROJECTS\WeatherApp
+
+git add -A
+git commit -m "Progress update: [co zrobiłeś]"
+git push origin main
+Czemu: Jeśli sesja crashuje, masz backup kodu w gicie.
+
+Krok 3: Zapisz Lokalne Notatki (opcjonalnie)
+Jeśli coś nie zmieści się w memory:
+
+# Lokalny plik w projekcie
+# C:\AI_PROJECTS\WeatherApp\NOTES.md
+
+# Albo w memory folder
+# C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\session_notes.md
+Krok 4: Zamknij Sesję
+Kliknij: [X] Close session
+NOWA SESJA (jak otwiersz)
+Krok 1: Otwórz Claude Code
+Kliknij: Claude Code (aplikacja)
+Krok 2: Otwórz Projekt
+Kliknij: File → Open Folder
+Wybierz: C:\AI_PROJECTS\WeatherApp
+Krok 3: Wpisz Context Prompt
+W czacie wpiszesz JEDNĄ Z TYCH OPCJI:
+
+OPCJA A - Naturalnie (NAJLEPSZA)
+
+Kontynuuję Weather App - hourly times debug.
+Czytam memory i logi z poprzedniej sesji.
+OPCJA B - Bezpośrednio
+
+Czytaj weather_app_migration.md ze memory.
+Chcę kontynuować gdzie skończyliśmy.
+OPCJA C - Konkretnie
+
+Weather App - Phase 6C migration.
+Ostatni problem: hourly times show "00:00".
+Potrzebujemy logcat debug.
+Krok 4: Claude Załaduje Memory
+Automatycznie:
+
+Claude czyta: C:\Users\Pablo\.claude\projects\C--AI-PROJECTS\memory\
+Załadowuje: weather_app_migration.md
+Ma pełny kontekst!
+Krok 5: Kontynuuj Pracę
+Ty: "Zrób build i zainstaluj APK"
+Claude: "OK, pamiętam że ostatnio mieliśmy bug z hourly times.
+         Buildujemy z console.log debug..."
+🎯 WORKFLOW PODSUMOWANIE
+SESJA 1 (STARA)
+├─ Pracujesz
+├─ Memory pliki AUTO-UPDATE
+├─ Robi się git commit
+└─ Zamykasz sesję
+        ↓ (kilka godzin, dni, tygodni...)
+SESJA 2 (NOWA)
+├─ Otwierasz Claude Code
+├─ Otwierasz projekt
+├─ Wpiszesz context prompt
+├─ Claude czyta memory/ AUTOMATYCZNIE
+├─ MA PEŁNY KONTEKST
+└─ Kontynuujesz pracę jak gdyby nic
+📝 BEST PRACTICES
+✅ DOBRZE
+Commit code - przed zamknięciem sesji
+Update memory - jeśli coś istotnego się zmieniło
+Naturalny prompt - "czytaj memory i kontynuuj"
+Jedna sesja = One goal - finish one task, start fresh dla nowego
+❌ ŹLE
+❌ Wychodzisz bez commit'a
+❌ Memory jest z 3 dni temu
+❌ Robisz 10 zadań w jednej sesji (context pollution)
+❌ Wysyłasz 500 linii "powiąż mi kontekst"
+🔄 PRAKTYCZNY EXAMPLE - TWOJA SYTUACJA
+Zaraz (koniec tej sesji)
+Co zrobić:
+
+1. git commit z tagiem "Progress: Phase 6C migration"
+2. Edytuj memory/weather_app_migration.md:
+   - STATUS: Hourly times bug - console.log debug added
+   - NEXT: Read logcat output, identify hourlyData.time format
+   - FILES: App.tsx lines 645-651 have debug logs
+3. Zamknij sesję
+Następny Raz (nowa sesja)
+Wpiszesz:
+
+Weather App - kontynuuję Phase 6C hourly times debug.
+Memory powinna mieć pełny kontekst.
+Czytamy logcat aby znaleźć format hourlyData.time.
+Claude:
+
+✅ Załadowałem weather_app_migration.md
+✅ Widzę że ostatni status to: hourly times bug
+✅ Widzę že musimy przeczytać logcat
+Gotów do kontynuacji. Zaczniemy od:
+1. adb logcat | Select-String "DEBUG"
+2. Identyfikacja formatu
+3. Fix extraction logiki
+🎯 CHECKLIST - KONIEC SESJI
+Przed zamknięciem sesji zawsze sprawdź:
+
+☐ git status - czy są uncomitted changes?
+☐ git commit - commituj zmiany
+☐ git push - wypchnij do remote
+☐ Update memory - jeśli coś się zmieniło
+☐ Notatki - jeśli coś poza memory
+☐ Zamknij sesję
+💡 PRO TIP
+Zapisz sobie template memory update'a:
+
+# UPDATE - [Data]
+
+## COMPLETED
+- ✅ Co zrobiłeś
+
+## IN PROGRESS
+- ❌ Co robi się teraz
+- Status: [konkretnie gdzie]
+
+## NEXT STEPS
+1. Krok 1
+2. Krok 2
+3. Krok 3
+
+## BLOCKERS
+- [jeśli są]
+
+## NOTES
+- [cokolwiek ważnego]
+Zawsze fill'uj to przed zamknięciem sesji.
+
+Gotów? 🚀
+
+to zrób powyższe za mnie i stwórz prompt inisjujący dla nowej sesji pełny
+
+PRZYGOTOWUJĘ NOWĄ SESJĘ
+Robię:
+
+✅ Update memory z aktualnym statusem
+✅ Git commit
+✅ Stworzenie full prompt inicjujący
+
+Recalled a memory, saved a memory
+
+Ran a command, used a tool
+Perfect! ✅ Teraz stworzę PEŁNY PROMPT INICJUJĄCY dla następnej sesji:
+
+📋 PROMPT INICJUJĄCY - NASTĘPNA SESJA
+Skopiuj to i wklej w nowej sesji Claude Code:
+
+# KONTYNUACJA WEATHER APP - SESSION #2
+## LOAD CONTEXT
+Czytaj weather_app_migration.md z memory folder.
+Wszystkie informacje o Phase 6C migration powinny się załadować automatycznie.
+## GDZIE BYLIŚMY
+Phase 6C migration from wttr.in to Open-Meteo DONE ✅
+- Current weather: WORKING
+- Forecast (6 days): WORKING  
+- WMO code mapping: WORKING
+- **BUG:** Hourly times show "00:00" dla wszystkich 24 godzin (powinno być 00:00, 01:00, 02:00...)
+## PROBLEM
+App.tsx line 646: `time.slice(-5)` zawsze zwraca "00:00"
+Root cause: unknown - hourlyData.time[idx] format nieznany
+## CO ROBIMY TERAZ
+1. Czytamy logcat debug output (console.log dodane w linii 645-651)
+2. Szukamy: "DEBUG hourlyData.time[0]:" - jaki format zwraca API?
+3. Jeśli inny format: adaptujemy slice/substring logikę
+4. Testujemy
+5. Commitujemy fix
+## KOMENDY DO STARTU
+```bash
+# Build + install + read debug logs
+cd C:\AI_PROJECTS\WeatherApp
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+rm -r android/app/build
+cd android
+.\gradlew assembleRelease
+adb install -r ../app/build/outputs/apk/release/app-release.apk
+adb logcat -c
+adb shell monkey -p com.weatherapp 1
+Start-Sleep 5
+adb logcat | Select-String "DEBUG"
+OSTATNI COMMIT
+d0d83ed - Session #1 complete: Phase 6C migration with debugging
+
+Przygotuj logcat output z debug linkami i pokażemy mu jakiego formatu użyć.
 
 ---
-
-## 🎯 POCZĄTKOWY STAN
-
-### Problem
-- Aplikacja pogodowa pokazywała tylko 2 kafelki prognozy (limit wttr.in = 3 dni)
-- User chciał: 5-6 kafelków w 2-kolumnowym layout
-
-### Decyzja
-- Migracja z wttr.in (max 3 dni) na Open-Meteo (16 dni darmowy tier)
-- Strategia: Phase 6B (forecast only) → Phase 6C (full migration)
+# 📁 CHECKLIST PRZED ZAMKNIĘCIEM
+✅ Memory updated - weather_app_migration.md
+✅ Git commit - d0d83ed
+✅ Git push - main branch updated
+✅ Prompt inicjujący - gotowy do skopiowania
 
 ---
+# 🎯 JAK TERAZ UŻYWAĆ
+## W NASTĘPNEJ SESJI
+1. **Otwórz Claude Code** 
+2. **Otwórz projekt:** `C:\AI_PROJECTS\WeatherApp`
+3. **Wklej poniższy prompt w chat:**
+Kontynuuję Weather App Phase 6C - hourly times debug.
+Czytam weather_app_migration.md z memory.
+Zaczynamy od logcat output'u.
 
-## ✅ PHASE 6B: Forecast-Only Test
-
-**Zmiana:** Zamieniłem daily forecast na Open-Meteo, hourly/current z wttr.in  
-**Wynik:** Praca! 6 kafelków w modal Prognoza
-
+4. **Claude automatycznie załaduje cały kontekst** ✨
 ---
-
-## ✅ PHASE 6C: Full Migration
-
-**Co zmieniono:**
-
-### 1. Location Lookup (Fallback Added)
-- wttr.in location lookup z fallback na cached coords (Warszawa default)
-- Jeśli API failuje, app używa fallback coordinates
-
-### 2. Current Weather z Open-Meteo
-- temperature_2m, relative_humidity_2m, apparent_temperature
-- wind_speed_10m, pressure_msl, cloud_cover, uv_index
-
-### 3. Hourly Forecast z Open-Meteo
-`	ypescript
-todayHourly = hourlyData.time.slice(0, 24).map((time: string, idx: number) => ({
-  time: time.slice(-5),  // BUG: zawsze "00:00"
-  tempC: hourlyData.temperature_2m[idx],
-  ...
-}));
-`
-
-### 4. Daily Forecast z Open-Meteo
-- 6 dni prognozy (vs 3 dni z wttr.in)
-- Sunrise/sunset z daily API
-
-### 5. WMO Code Mapping (NOWE)
-`	ypescript
-const WMO_CODE_PL: { [code: number]: string } = {
-  0: 'Bezchmurnie',
-  1: 'Przeważnie pogodnie',
-  2: 'Częściowe zachmurzenie',
-  3: 'Zachmurzenie',
-  45: 'Zamglenie',
-  61: 'Słaby deszcz',
-  95: 'Burza',
-  ... (25 kodów WMO)
-};
-`
-
-**Commit:** 1a67f26 - Phase 6C: Full migration from wttr.in to Open-Meteo
-
----
-
-## 🐛 GODZINY - PROBLEM & PRÓBY DEBUGOWANIA
-
-### Problem
-Godziny w "Dziś godzinowo" sekcji pokazują "00:00" dla wszystkich 24 godzin, mimo że temperatury są prawidłowe (23°, 22°, 22°...)
-
-### Próby Fix'ów
-
-**1. Index-Based (Rejected)**
-\\\javascript
-time: \\:00\  // 00:00, 01:00, 02:00...
-\\\
-- User: "Godziny mają pochodzić z API, nie z indeksu"
-
-**2. substring(11, 16)**
-\\\javascript
-time: time.substring(11, 16)  // Extract HH:MM from ISO "2026-06-21T00:00"
-\\\
-- Wynik: Zawsze "00:00" dla wszystkich
-- Commit: 4417a93
-
-**3. Regex match**
-\\\javascript
-time: (time.match(/T(\d{2}:\d{2})/) || ['', '00:00'])[1]
-\\\
-- Wynik: Zawsze failuje, fallback '00:00'
-
-**4. slice(-5)**
-\\\javascript
-time: time.slice(-5)  // Last 5 chars from ISO string
-\\\
-- Wynik: Wciąż "00:00"
-- Status: Console.log debug dodany (linie 645-651)
-
----
-
-## 🔧 DEVICE & NETWORK DEBUG
-
-### USB Debugging Setup
-1. Settings → About phone → Build number (tap 7x)
-2. Settings → System → Developer Options → Enable USB Debugging
-3. Approve trust prompt na device
-
-**Wynik:** ✅ Device visible w adb devices
-
-### Network Connectivity Tests
-Dev Machine:
-- ✅ Internet (ping google.com)
-- ✅ wttr.in API (Łat: 50.800, Łon: 19.117)
-- ✅ Open-Meteo forecast, current, AQI APIs
-
-Device:
-- ✅ ping google.com (0% loss, 24-46ms)
-- ✅ curl open-meteo API
-- ✅ WiFi connected
-
-**Wniosek:** Device HAS internet. App pokazuje offline warning ale załadowuje nowe dane.
-
----
-
-## 📋 TESTING SESSIONS NA DEVICE
-
-**Session 1:** Modal Prognoza
-- ✅ 6 kafelków (2x3 grid)
-- ✅ Temperatury prawidłowe
-- ❌ Opisy "Brak danych" (WMO mapping before fix)
-
-**Session 2:** Po cache clear
-- ✅ App załadował nowe dane (27° zamiast cached 30°)
-- ✅ Temperatury 23°, 22°, 22°, 22°, 22° (różne!)
-- ❌ Godziny wszystkie "00:00"
-
-**Session 3-4:** Po substring / regex / slice fixes
-- ❌ Wciąż "00:00"
-
----
-
-## 📌 WHAT WORKS ✅
-
-- WMO Mapping: Opisy pogody wyświetlane ("Umiarkowana", "Słaby deszcz")
-- Temperature Data: Różne wartości dla każdej godziny
-- Current Weather: Nowe dane z Open-Meteo
-- Forecast Cards: 6 kafelków vidocznych
-- API Connectivity: Device ma internet
-- Build & Install: APK kompiluje się i instala się
-
----
-
-## ❌ WHAT DOESN'T WORK
-
-- Hourly Times: Wszystkie "00:00" zamiast 00:00, 01:00, 02:00...
-- Root Cause: hourlyData.time[idx] format nieznany
-
----
-
-## 🔍 NEXT STEPS (Dla Nowej Sesji)
-
-1. Odczytaj logcat: db logcat > logcat_output.txt
-2. Szukaj: "DEBUG hourlyData.time[0]:" - jaki format?
-3. Dopasuj extraction - zmień dla znalezionego formatu
-4. Test + commit
-5. Final verification
-
----
-
-## 📂 KEY FILES & LINES
-
-| File | Lines | Status |
-|------|-------|--------|
-| App.tsx | 203-228 | WMO_CODE_PL mapping ✅ |
-| App.tsx | 237-251 | getPolishDesc() ✅ |
-| App.tsx | 543-616 | Location + Open-Meteo ✅ |
-| App.tsx | 643-652 | Hourly times ❌ |
-
----
-
-## 💾 GIT HISTORY
-
-- 4417a93 - Fix: hourly forecast time display
-- 1a67f26 - Phase 6C: Full migration from wttr.in to Open-Meteo
-
----
-
-## 🚀 SUMMARY
-
-### Done ✅
-- Full Open-Meteo migration (current + hourly + daily)
-- WMO code mapping + weather descriptions
-- 6 kafelków w modal (user requirement)
-- Device connectivity + offline fallback
-
-### TODO ❌
-- Hourly times extraction bug (00:00 dla wszystkich)
-- Root cause analysis via logcat
-- Final fix + verification
-- Commit & push
-
----
-
-**Sesja zakończona:** 2026-06-21 ~11:31  
-**Status:** 90% gotowy (hourly times pending)  
-**Build:** ✅ Kompiluje się, instala się, działa (z bugiem czasu)
+# ✨ GOTOWE NA NASTĘPNĄ SESJĘ!
+Memory: ✅ Updated  
+Git: ✅ Committed & Pushed  
+Prompt: ✅ Przygotowany do skopiowania  
+Archiwum: ✅ Backup sesji w projekcie  
+**Następnym razem - wprost do debugowania!** 🚀

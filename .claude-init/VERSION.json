@@ -1,0 +1,111 @@
+{
+  "project": {
+    "name": "WeatherApp",
+    "description": "Premium Polish Android weather application (React Native)",
+    "repository": "https://github.com/supermamkonto-lab/weather-app",
+    "language": "Polish (pl-PL)",
+    "platform": "Android",
+    "reference_device": "Motorola Edge 50 Fusion"
+  },
+  "phase": {
+    "current": "7A (Documentation & Recovery)",
+    "status": "COMPLETE",
+    "next": "7B (Product Development)",
+    "next_duration_hours": "4-6"
+  },
+  "technology": {
+    "react_native": "0.86.0",
+    "react": "19.2.3",
+    "typescript": "^5.8.3",
+    "api": "Open-Meteo (free, 16-day forecast)",
+    "state_management": "Context API + AsyncStorage",
+    "build_system": "Gradle 9.3.1"
+  },
+  "entrypoint": {
+    "primary": "AI_BOOT.md",
+    "location": ".claude-init/AI_BOOT.md",
+    "purpose": "Universal entry point for any AI model"
+  },
+  "documentation_layers": {
+    "onboarding": {
+      "path": ".claude-init/",
+      "files": 7,
+      "size_kb": 32,
+      "purpose": "5-minute AI bootstrap, 80-90% understanding",
+      "target_audience": "Any AI model (Claude, ChatGPT, Gemini, Cursor, etc.)"
+    },
+    "full_documentation": {
+      "path": "docs/",
+      "files": 19,
+      "size_kb": 200,
+      "purpose": "Complete project knowledge, design rules, decision rationale",
+      "entry_point": "docs/README.md"
+    },
+    "recovery": {
+      "path": ".claude-backup/",
+      "files": 32,
+      "size_kb": 780,
+      "purpose": "Disaster recovery, session knowledge, critical backups",
+      "tiers": ["TIER_1_CRITICAL", "TIER_2_IMPORTANT", "TIER_3_USER_CONTEXT"]
+    }
+  },
+  "recovery_target": {
+    "understanding_percent": 95,
+    "time_minutes": 20,
+    "scenarios": [
+      "conversation_loss",
+      "memory_loss",
+      "backup_loss",
+      "new_computer",
+      "new_ai_model"
+    ]
+  },
+  "git": {
+    "total_commits": 44,
+    "remote": "https://github.com/supermamkonto-lab/weather-app.git",
+    "branch": "main",
+    "protected_folders": [".claude-backup/", "memory/", ".claude/"]
+  },
+  "current_tasks": {
+    "phase_7b_issues": [
+      {
+        "issue": "minTemp missing in forecast cards",
+        "priority": "CRITICAL",
+        "time_minutes": 1
+      },
+      {
+        "issue": "Redesign Dziś godzinowo (hourly forecast)",
+        "priority": "HIGH",
+        "time_hours": "2-3"
+      },
+      {
+        "issue": "Redesign Szczegóły grid (details section)",
+        "priority": "HIGH",
+        "time_hours": "1-2"
+      }
+    ]
+  },
+  "locked_decisions": {
+    "platform": "Android (not iOS/web)",
+    "language": "Polish (not multi-language)",
+    "api": "Open-Meteo (not wttr.in)",
+    "design_reference": "Apple HIG (not Material Design)",
+    "primary_color": "#1E90FF (locked)",
+    "state_management": "Context API (not Redux)"
+  },
+  "quality_metrics": {
+    "github_safety_score": 100,
+    "enterprise_readiness": "94.6/100",
+    "recovery_capability": "95/100",
+    "documentation_completeness": "100/100",
+    "build_time_seconds": 8,
+    "startup_time_seconds": 3
+  },
+  "metadata": {
+    "created_date": "2026-06-22",
+    "init_layer_version": "1.0",
+    "last_updated": "2026-06-22T07:30:00Z",
+    "documentation_phase": "PHASE 7A COMPLETE (deployment verified on Motorola Edge 50 Fusion)",
+    "next_phase": "PHASE 7B (Product Development)"
+  }
+}

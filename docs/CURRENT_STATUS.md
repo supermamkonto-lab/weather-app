@@ -8,14 +8,85 @@ metadata:
   originSessionId: bfcdca2f-0252-4b7e-92d0-d4edbc3a00c8
 ---
 
+# 🔒 STATUS GOVERNANCE
+
+**LAST VERIFIED:** 2026-06-22
+
+**STATUS OWNER:** MASTER ADMIN
+
+**Governance Rule:**
+- Jeśli data LAST VERIFIED jest starsza niż 14 dni → Status uznawany za nieaktualny
+- Jeśli dokument stał się nieaktualny → Zgłoś MASTER ADMINOWI
+- Nie aktualizuj samodzielnie bez analizy bieżącego stanu projektu
+
+**Aby zaktualizować CURRENT_STATUS.md:**
+1. Analiza bieżącego stanu (git log, ACTIVE_DECISIONS.md, OPEN_ISSUES_AND_ROADMAP.md)
+2. Proponowana zmiana statusu
+3. Oczekiwanie na decyzję MASTER ADMINA
+4. Po zatwierdzeniu: zmiana daty LAST VERIFIED
+
+---
+
 # CURRENT PHASE — WEATHER APP PROJECT
 
-## Active Phase: PHASE 7A.5
-**Project Knowledge Preservation & Memory Hardening**
+## 🔄 SESSION HANDOFF (2026-07-02) — PHASE 7B, koniec sesji
 
-**Duration:** Jun 22 02:30 - (ongoing)
-**Goal:** Memory Readiness ≥ 90/100 before next compaction
-**Status:** 🔴 ACTIVE — Documentation phase
+**APK build — ZABLOKOWANY przez Windows Defender (3 próby, wszystkie AccessDeniedException):**
+- Fix: dodaj `C:\AI_PROJECTS\WeatherApp\android` do wyjątków Windows Security (wymaga admina)
+- Do czasu naprawy: zmiany działają TYLKO przez Metro
+
+**Zadania PHASE 7B:**
+- ✅ Zadanie 1 — minTemp przywrócone w kartach "Najbliższe dni" (App.tsx ~1600-1607)
+- ✅ Zadanie 2 — redesign "Dziś godzinowo": slot 68px, scrollowalność do 23:00, wykres 104px, padX=34 — potwierdzone przez MASTER ADMINA na urządzeniu
+- ❌ Zadanie 3 — redesign "Szczegóły" (grid 2×2 → mini-widgety z ikoną+wartością) — NIE ZACZĘTE, App.tsx ~1622+
+- ⏳ Opcjonalne — Powietrze badge w Hero (~30 min)
+
+---
+
+## 🔄 SESSION HANDOFF (2026-07-02) — PHASE 7B, Zadanie 2
+
+**Zrobione w tej sesji (redesign „Dziś godzinowo"):**
+- ✅ Wykres temperatury: naprawiony spłaszczony wygląd — wysokość rysowania `74 → 104 px`, `H 130 → 150` ([src/components/TempCurve.tsx](../src/components/TempCurve.tsx))
+- ✅ Kafle godzinowe: naprawiony bug ucinania doby na ~19:00 — kontener liczony `length × 68` (slot/pitch) zamiast `× 60`, cała doba 00:00–23:00 scrollowalna ([App.tsx:1523-1573](../App.tsx))
+- ✅ Krzywa wyrównana nad środek kafla (nowy prop `padX=34` w TempCurve, slot 68 px)
+- ✅ Logika „teraz": `hH === now` (usunięto 3-godzinne okno — relikt danych 3h z wttr.in)
+- 🔒 Wielkość samego kafla NIE zmieniona (minWidth 60, padding 8, radius 10) — na wyraźne życzenie MASTER ADMINA
+- ℹ️ Design locked zachowany (#1E90FF, brak emoji, zaokrąglenia 10–14 pt)
+
+**Status zadania:** kod gotowy, POTWIERDZONY przez MASTER ADMINA na Motoroli ZY22M6H35M — kafle scrollują do 23:00, wykres z poprawną amplitudą, pojedynczy marker „teraz".
+
+**Dodatkowo (Zadanie 1, minTemp):** przywrócony minTemp na kartach „Najbliższe dni" (App.tsx ~1600: max 32pt niebieski + min 16pt szary #9ca3af w wierszu baseline) — w kodzie, czeka na wizualne potwierdzenie MASTER ADMINA.
+
+**⚠️ WAŻNE — wdrożenie:**
+- Zmiany działają przez Metro (live JS). Warunki: Metro uruchomione (`npx react-native start`) + `adb reverse tcp:8081 tcp:8081`. Gdy Metro nie działa, apka debug wraca do STAREGO bundla wbudowanego w APK (objaw: kafle znów do 19:00).
+- Build APK `app:installDebug` NIE powiódł się (`mergeDebugNativeLibs → AccessDeniedException` na merged_native_libs\arm64-v8a — blokada FS po stronie Windows, nie wina kodu). Do ponowienia — dopiero wtedy zmiany będą trwałe/offline.
+
+Zmiana statusu FAZY należy do MASTER ADMINA.
+
+---
+
+## 🔄 SESSION HANDOFF (Last Session Snapshot)
+
+**Session end:** 2026-06-22
+**Verified this session:**
+- ✅ App builds successfully on device (Gradle `app:installDebug`, ~1m 5s)
+- ✅ Installed + launched on **Motorola Edge 50 Fusion** (ZY22M6H35M, Android 15)
+- ✅ `com.weatherapp` runs, weather loads correctly (user-confirmed)
+- ✅ Metro bundler verified on port 8081 (live reload OK)
+- ✅ `.claude-init/` bootstrap layer finalized (AI_BOOT.md + COPY_TO_NEW_SESSION.md)
+
+**Do NOT upgrade device to Android 16** — separate audit flagged bootloop risk (unverified sources; treat as OPEN, not decided).
+
+**Next session should:** await MASTER ADMIN decision to open PHASE 7B (3 tasks below).
+
+---
+
+## Active Phase: PHASE 7A → 7B TRANSITION
+**PHASE 7A (Documentation & Recovery): ✅ COMPLETE**
+**PHASE 7B (Product Development): ⏳ AWAITING MASTER ADMIN**
+
+**Goal:** Fix 3 known UX issues (minTemp, hourly, details grid)
+**Status:** 🟢 Ready — code stable, app verified running on target device
 
 ---
 

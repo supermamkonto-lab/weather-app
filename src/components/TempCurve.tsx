@@ -24,13 +24,12 @@ const smoothPath = (pts: { x: number; y: number }[]): string => {
   return d;
 };
 
-export const TempCurve = ({ points, width }: { points: Point[]; width: number }) => {
+export const TempCurve = ({ points, width, padX = 22 }: { points: Point[]; width: number; padX?: number }) => {
   if (!points || points.length < 2) return null;
 
-  const H = 130;
-  const padX = 22;
-  const padTop = 30;   // miejsce na etykiety temp nad punktami
-  const padBottom = 26; // miejsce na godziny pod punktami
+  const H = 150;       // wyższy wykres = wyraźniejsza amplituda (koniec ze spłaszczeniem)
+  const padTop = 36;   // miejsce na etykiety temp nad punktami
+  const padBottom = 18; // miejsce na godziny pod punktami
   const innerW = width - padX * 2;
   const innerH = H - padTop - padBottom;
 
@@ -64,12 +63,10 @@ export const TempCurve = ({ points, width }: { points: Point[]; width: number })
               <Line x1={c.x} y1={padTop - 6} x2={c.x} y2={padTop + innerH} stroke="#1e90ff" strokeWidth={1} opacity={0.3} strokeDasharray="3,3" />
             )}
             <Circle cx={c.x} cy={c.y} r={c.isNow ? 5 : 3.5} fill={c.isNow ? '#1e90ff' : '#fff'} stroke="#1e90ff" strokeWidth={2} />
-            {i % 6 === 0 && (
-              <SvgText x={c.x} y={c.y - 12} fontSize={13} fontWeight="700" fill="#333" textAnchor="middle">
-                {`${c.temp}°`}
-              </SvgText>
-            )}
-            <SvgText x={c.x} y={H - 8} fontSize={11} fill={c.isNow ? '#1e90ff' : '#999'} fontWeight={c.isNow ? '700' : '400'} textAnchor="middle">
+            <SvgText x={c.x} y={c.y - 16} fontSize={17} fontWeight="700" fill="#ffffff" textAnchor="middle">
+              {`${c.temp}°`}
+            </SvgText>
+            <SvgText x={c.x} y={H - 8} fontSize={11} fill={c.isNow ? '#60b4ff' : 'rgba(255,255,255,0.55)'} fontWeight={c.isNow ? '700' : '400'} textAnchor="middle">
               {c.label}
             </SvgText>
           </React.Fragment>

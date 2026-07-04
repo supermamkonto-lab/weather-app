@@ -7,14 +7,16 @@ export const SectionHeader = ({
   title,
   accent = '#1e90ff',
   right,
+  dark = false,
 }: {
   title: string;
   accent?: string;
   right?: React.ReactNode;
+  dark?: boolean;
 }) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
     <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: accent, marginRight: 9 }} />
-    <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a1a1a', letterSpacing: 0.2, flex: 1 }}>
+    <Text style={{ fontSize: 16, fontWeight: '800', color: dark ? 'rgba(255,255,255,0.95)' : '#1a1a1a', letterSpacing: 0.2, flex: 1 }}>
       {title}
     </Text>
     {right}

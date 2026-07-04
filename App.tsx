@@ -1329,28 +1329,6 @@ export default function App() {
           </Animated.View>
         )}
 
-        {/* DAILY DECISION — odpowiedź na pytanie rano (przed miastami, nad foldem) */}
-        {weather && !loading && (() => {
-          const dec = generateGoOutDecision(weather);
-          return (
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={() => { haptic(); setShowSportModal(true); }}
-              style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.26)', flexDirection: 'row', alignItems: 'center' }}
-            >
-              <View style={{ width: 5, height: 44, borderRadius: 3, backgroundColor: dec.color, marginRight: 14, shadowColor: dec.color, shadowOpacity: 0.6, shadowRadius: 6, elevation: 3 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.2, textShadowColor: 'rgba(0,0,0,0.25)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
-                  {dec.verdict}
-                </Text>
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', marginTop: 3, lineHeight: 18 }}>
-                  {dec.reason}
-                </Text>
-              </View>
-              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 18, fontWeight: '300', marginLeft: 8 }}>›</Text>
-            </TouchableOpacity>
-          );
-        })()}
 
         {/* Ulubione miasta */}
         <Text style={styles.favoritesTitle}>ULUBIONE MIASTA</Text>
@@ -1438,7 +1416,7 @@ export default function App() {
           <Animated.View style={{ opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
             <View style={styles.dashboardBox} ref={weatherCardRef}>
-              <SectionHeader title="Przegląd" accent={theme.accent} />
+              <SectionHeader title="Przegląd" accent={theme.accent} dark />
 
               {/* Opady + Wiatr + AQI */}
               <View style={styles.dashboardGrid}>
@@ -1470,37 +1448,28 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Komfort + Jutro + Czy wyjść */}
+              {/* Komfort + Jutro */}
               {(() => {
-                const decision = generateGoOutDecision(weather);
                 const score = calculateWeatherScore(weather);
                 return (
-                  <>
-                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                      <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff9e6', borderRadius: 8 }}>
-                        <Text style={styles.dashboardLabel}>KOMFORT</Text>
-                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 24 }]}>
-                          {score}/100
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff3e0', borderRadius: 8 }}>
-                        <Text style={styles.dashboardLabel}>JUTRO</Text>
-                        {weather.forecast?.[0] ? (
-                          <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 20 }]}>
-                            {weather.forecast[0].maxTemp.replace('°C','°')}/{weather.forecast[0].minTemp.replace('°C','°')}
-                          </Text>
-                        ) : (
-                          <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>brak</Text>
-                        )}
-                      </View>
-                    </View>
-                    <View style={{ backgroundColor: decision.color + '12', borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: decision.color, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '800', color: decision.color, letterSpacing: 0.2 }}>
-                        {decision.verdict}
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderRadius: 13, elevation: 3, shadowColor: '#0d1f33', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
+                      <Text style={styles.dashboardLabel}>KOMFORT</Text>
+                      <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 24 }]}>
+                        {score}/100
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#555', marginTop: 3, lineHeight: 17 }}>{decision.reason}</Text>
                     </View>
-                  </>
+                    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderRadius: 13, elevation: 3, shadowColor: '#0d1f33', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
+                      <Text style={styles.dashboardLabel}>JUTRO</Text>
+                      {weather.forecast?.[0] ? (
+                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 20 }]}>
+                          {weather.forecast[0].maxTemp.replace('°C','°')}/{weather.forecast[0].minTemp.replace('°C','°')}
+                        </Text>
+                      ) : (
+                        <Text style={[styles.dashboardValue, { color: '#ff9800', fontSize: 14 }]}>brak</Text>
+                      )}
+                    </View>
+                  </View>
                 );
               })()}
 
@@ -1508,20 +1477,23 @@ export default function App() {
 
             {/* GODZINOWY INDEKS KOMFORTU */}
             {weather.hourly && weather.hourly.length > 0 && (
-              <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
+              <View style={{ backgroundColor: '#2e3f52', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 }}>
                 <SectionHeader
                   title="Dziś godzinowo"
                   accent={theme.accent}
+                  dark
                   right={
                     <TouchableOpacity onPress={() => { haptic(); setShowSportModal(true); }}>
-                      <Text style={{ fontSize: 13, color: '#1e90ff', fontWeight: '700' }}>Sport →</Text>
+                      <Text style={{ fontSize: 13, color: '#60b4ff', fontWeight: '700' }}>Sport →</Text>
                     </TouchableOpacity>
                   }
                 />
 
                 {/* Krzywa temperatury + kafelki - oba w JEDNYM ScrollView aby się przesuwały razem */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ width: weather.hourly.length * 60, paddingRight: 16 }}>
+                  {/* SLOT = stały rozstaw godziny (pitch). Kontener, krzywa i kafle liczone z tego samego SLOT,
+                      dzięki czemu nic się nie ucina (cała doba scrollowalna) a krzywa trafia nad środek kafla. */}
+                  <View style={{ width: weather.hourly.length * 68 + 16, paddingRight: 16 }}>
                     {(() => {
                       const nowH = new Date().getHours();
                       const pts = weather.hourly.map(h => {
@@ -1529,38 +1501,40 @@ export default function App() {
                         return {
                           label: h.time.split(':')[0],
                           temp: parseInt(h.temp.replace('°', '')) || 0,
-                          isNow: hH <= nowH && hH + 3 > nowH,
+                          isNow: hH === nowH,
                         };
                       });
-                      return <TempCurve points={pts} width={weather.hourly.length * 60} />;
+                      return <TempCurve points={pts} width={weather.hourly.length * 68} padX={34} />;
                     })()}
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flexDirection: 'row' }}>
                     {weather.hourly.map((h, i) => {
                       const now = new Date().getHours();
                       const hHour = parseInt(h.time.split(':')[0]);
                       const isPast = hHour < now;
-                      const isNow = hHour === now || (hHour <= now && hHour + 3 > now);
+                      const isNow = hHour === now;
                       const comfortColor = h.comfort >= 80 ? '#4caf50' : h.comfort >= 60 ? '#8bc34a' : h.comfort >= 40 ? '#ff9800' : '#f44336';
                       return (
-                        <View key={i} style={{
-                          alignItems: 'center', padding: 8, borderRadius: 10, minWidth: 60,
-                          backgroundColor: isNow ? '#e3f2fd' : isPast ? '#f5f5f5' : '#fafafa',
-                          borderWidth: isNow ? 2 : 1,
-                          borderColor: isNow ? '#1e90ff' : '#e0e0e0',
-                          opacity: isPast ? 0.5 : 1,
-                        }}>
-                          <Text style={{ fontSize: 11, fontWeight: isNow ? '700' : '400', color: isNow ? '#1e90ff' : '#666' }}>{h.time}</Text>
-                          <View style={{ marginVertical: 3 }}>
-                            <WeatherIcon desc={h.cond} night={h.night} size={30} />
+                        <View key={i} style={{ width: 68, alignItems: 'center' }}>
+                          <View style={{
+                            alignItems: 'center', padding: 8, borderRadius: 10, minWidth: 60,
+                            backgroundColor: isNow ? 'rgba(30,144,255,0.22)' : isPast ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.13)',
+                            borderWidth: isNow ? 2 : 1,
+                            borderColor: isNow ? '#60b4ff' : 'rgba(255,255,255,0.15)',
+                            opacity: isPast ? 0.5 : 1,
+                          }}>
+                            <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: isNow ? '700' : '400', color: isNow ? '#60b4ff' : 'rgba(255,255,255,0.65)' }}>{h.time}</Text>
+                            <View style={{ marginVertical: 3 }}>
+                              <WeatherIcon desc={h.cond} night={h.night} size={30} />
+                            </View>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{h.temp}</Text>
+                            {h.rainChance > 15 && (
+                              <Text style={{ fontSize: 10, color: '#1e90ff', fontWeight: '700' }}>{h.rainChance}%</Text>
+                            )}
+                            <View style={{ marginTop: 4, width: 36, height: 4, borderRadius: 2, backgroundColor: '#eee' }}>
+                              <View style={{ width: `${h.comfort}%` as any, height: 4, borderRadius: 2, backgroundColor: comfortColor }} />
+                            </View>
+                            <Text style={{ fontSize: 9, color: comfortColor, fontWeight: '700', marginTop: 1, opacity: 0.9 }}>{h.comfort}</Text>
                           </View>
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#333' }}>{h.temp}</Text>
-                          {h.rainChance > 15 && (
-                            <Text style={{ fontSize: 10, color: '#1e90ff', fontWeight: '700' }}>{h.rainChance}%</Text>
-                          )}
-                          <View style={{ marginTop: 4, width: 36, height: 4, borderRadius: 2, backgroundColor: '#eee' }}>
-                            <View style={{ width: `${h.comfort}%` as any, height: 4, borderRadius: 2, backgroundColor: comfortColor }} />
-                          </View>
-                          <Text style={{ fontSize: 9, color: comfortColor, fontWeight: '700', marginTop: 1 }}>{h.comfort}</Text>
                         </View>
                       );
                     })}
@@ -1572,20 +1546,24 @@ export default function App() {
 
             {/* PROGNOZA 5-DNIOWA — grid 2 kolumny (premium) */}
             {weather.forecast && weather.forecast.length > 0 && (
-              <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10 }}>
+              <View style={{ backgroundColor: '#2e3f52', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 }}>
                 <SectionHeader
                   title="Najbliższe dni"
                   accent={theme.accent}
+                  dark
                   right={
                     <TouchableOpacity onPress={() => { haptic(); setShowForecastModal(true); }}>
-                      <Text style={{ fontSize: 13, color: '#1e90ff', fontWeight: '700' }}>Szczegóły →</Text>
+                      <Text style={{ fontSize: 13, color: '#60b4ff', fontWeight: '700' }}>Szczegóły →</Text>
                     </TouchableOpacity>
                   }
                 />
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
                   {weather.forecast.map((day, i) => {
                     const dayDate = new Date(day.date);
-                    const dayName = i === 0 ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'short' });
+                    const today = new Date();
+                    const isToday = dayDate.toDateString() === today.toDateString();
+                    const isTomorrow = dayDate.toDateString() === new Date(today.getTime() + 86400000).toDateString();
+                    const dayName = isToday ? 'Dziś' : isTomorrow ? 'Jutro' : dayDate.toLocaleDateString('pl-PL', { weekday: 'short' });
                     return (
                       <TouchableOpacity
                         key={i}
@@ -1593,15 +1571,20 @@ export default function App() {
                         onPress={() => setSelectedDay(day)}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 32, fontWeight: '700', color: '#1e90ff', marginBottom: 4, letterSpacing: -1 }}>
-                          {day.maxTemp.replace('°C', '°')}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 32, fontWeight: '700', color: '#1e90ff', letterSpacing: -1 }}>
+                            {day.maxTemp.replace('°C', '°')}
+                          </Text>
+                          <Text style={{ fontSize: 16, fontWeight: '600', color: '#9ca3af', marginLeft: 6 }}>
+                            {day.minTemp.replace('°C', '°')}
+                          </Text>
+                        </View>
                         <Text style={{ fontSize: 11, fontWeight: '600', color: '#9ca3af', marginBottom: 8 }}>
                           {dayName}
                         </Text>
                         <WeatherIcon desc={day.description} size={32} />
-                        <Text style={{ fontSize: 11, fontWeight: '500', color: '#6b7280', marginTop: 8, textAlign: 'center' }}>
-                          {day.description.substring(0, 14)}
+                        <Text style={{ fontSize: 11, fontWeight: '500', color: '#6b7280', marginTop: 8, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">
+                          {day.description}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -1629,65 +1612,62 @@ export default function App() {
                     }
                   }}
                 >
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: favorites.includes(city) ? '#ffd54f' : 'transparent', borderWidth: 2, borderColor: favorites.includes(city) ? '#ffd54f' : '#aaa' }} />
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: favorites.includes(city) ? '#ffd54f' : 'transparent', borderWidth: 2, borderColor: favorites.includes(city) ? '#ffd54f' : 'rgba(255,255,255,0.4)' }} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.insightBox}>
-                <Text style={styles.insight}>{generateWeatherInsight(weather)}</Text>
-              </View>
+              {/* Szczegóły pogody — mini-karty */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                {(() => {
+                  const uvN = parseInt(weather.uvIndex) || 0;
+                  const pressN = parseInt(weather.pressure) || 0;
+                  const visN = parseFloat(weather.visibility) || 0;
 
-              {/* Szczegóły pogody */}
-              <SectionHeader title="Szczegóły" accent={theme.accent} />
-              <View style={styles.detailsGrid}>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Ciśnienie</Text>
-                  <Text style={styles.detailGridValue}>{weather.pressure.replace(' mb', ' hPa')}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Widoczność</Text>
-                  <Text style={styles.detailGridValue}>{weather.visibility}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Indeks UV</Text>
-                  <Text style={styles.detailGridValue}>{weather.uvIndex}</Text>
-                </View>
-                <View style={[styles.detailGridItem, { backgroundColor: '#fff3cd' }]}>
-                  <Text style={styles.detailGridLabel}>Długość dnia</Text>
-                  <Text style={[styles.detailGridValue, { color: '#ff9800' }]}>
-                    {calculateDayLength(weather.sunrise, weather.sunset)}
-                  </Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Wschód słońca</Text>
-                  <Text style={styles.detailGridValue}>{weather.sunrise || 'N/A'}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Zachód słońca</Text>
-                  <Text style={styles.detailGridValue}>{weather.sunset || 'N/A'}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>PM2.5 — pyły drobne</Text>
-                  <Text style={styles.detailGridValue}>{weather.pm25}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>PM10 — pyły zawieszone</Text>
-                  <Text style={styles.detailGridValue}>{weather.pm10}</Text>
-                </View>
-                <View style={styles.detailGridItem}>
-                  <Text style={styles.detailGridLabel}>Pyłki</Text>
-                  <Text style={[styles.detailGridValue, { color: weather.pollenColor || '#999', fontSize: (weather.pollen || '').length > 14 ? 13 : 16 }]} numberOfLines={2}>
-                    {weather.pollen || 'Brak danych'}
-                  </Text>
-                </View>
+                  const uvCtx = uvN <= 2 ? 'Niski' : uvN <= 5 ? 'Umiarkowany' : uvN <= 7 ? 'Wysoki' : uvN <= 10 ? 'Bardzo wysoki' : 'Ekstremalny';
+                  const pressCtx = pressN < 1000 ? 'Niskie' : pressN <= 1013 ? 'Normalne' : 'Wysokie';
+                  const visCtx = weather.visibility === 'Brak danych' ? '' : visN < 5 ? 'Ograniczona' : visN < 10 ? 'Umiarkowana' : visN < 20 ? 'Dobra' : 'Doskonała';
+
+                  const card = { width: '48%' as any, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, elevation: 6, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 12, borderWidth: 0.5, borderColor: 'rgba(255,220,130,0.18)' };
+
+                  const items = [
+                    { emoji: '🌡', iconBg: '#bfdbfe', label: 'Ciśnienie',    value: weather.pressure.replace(' mb', ' hPa'), context: pressCtx },
+                    { emoji: '👁',  iconBg: '#a5f3fc', label: 'Widoczność',  value: weather.visibility,                       context: visCtx },
+                    { emoji: '☀️', iconBg: '#fde68a', label: 'Indeks UV',    value: weather.uvIndex,                          context: uvCtx },
+                    { emoji: '⏳', iconBg: '#ddd6fe', label: 'Długość dnia', value: calculateDayLength(weather.sunrise, weather.sunset), context: '' },
+                    { emoji: '🌅', iconBg: '#fed7aa', label: 'Wschód',       value: weather.sunrise || 'N/A',                 context: '' },
+                    { emoji: '🌇', iconBg: '#fbcfe8', label: 'Zachód',       value: weather.sunset  || 'N/A',                 context: '' },
+                    { emoji: '💨', iconBg: '#a7f3d0', label: 'PM2.5',        value: weather.pm25,                             context: '' },
+                    { emoji: '💨', iconBg: '#a7f3d0', label: 'PM10',         value: weather.pm10,                             context: '' },
+                    { emoji: '🌿', iconBg: '#86efac', label: 'Pyłki',        value: weather.pollen  || 'Brak danych',         context: '' },
+                  ];
+
+                  return items.map((item, i) => (
+                    <View key={i} style={card}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: item.iconBg, justifyContent: 'center', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
+                        </View>
+                        <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{item.label}</Text>
+                      </View>
+                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#1f2937' }} numberOfLines={2}>{item.value}</Text>
+                      {item.context ? <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{item.context}</Text> : null}
+                    </View>
+                  ));
+                })()}
+
                 <TouchableOpacity
-                  style={[styles.detailGridItem, { backgroundColor: weather.aqiColor }]}
+                  style={{ width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 10, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.10, shadowRadius: 10 }}
                   onPress={() => setShowAQIModal(true)}
+                  activeOpacity={0.75}
                 >
-                  <Text style={[styles.detailGridLabel, { color: 'rgba(255,255,255,0.85)' }]}>Jakość powietrza</Text>
-                  <Text style={[styles.detailGridValue, { color: '#fff', fontSize: 18 }]}>
-                    {weather.aqi}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: weather.aqiColor + '30', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 16 }}>🌬</Text>
+                    </View>
+                    <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600', marginLeft: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>Powietrze</Text>
+                  </View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: weather.aqiColor }}>{weather.aqi}</Text>
+                  <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Szczegóły →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1951,7 +1931,7 @@ export default function App() {
                       <>
                         <SectionHeader title="Najlepsze godziny" accent={rec.color} />
                         {weather.hourly
-                          .filter(h => h.comfort >= 70)
+                          .filter(h => { const hH = parseInt(h.time.split(':')[0]); return hH >= new Date().getHours() && h.comfort >= 70; })
                           .slice(0, 4)
                           .map((h, i) => (
                           <View key={i} style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 }}>
@@ -1962,7 +1942,7 @@ export default function App() {
                             </View>
                           </View>
                         ))}
-                        {weather.hourly.filter(h => h.comfort >= 70).length === 0 && (
+                        {weather.hourly.filter(h => { const hH = parseInt(h.time.split(':')[0]); return hH >= new Date().getHours() && h.comfort >= 70; }).length === 0 && (
                           <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, elevation: 2 }}>
                             <Text style={{ color: '#f44336', fontWeight: '600' }}>Dziś brak godzin z komfortem ≥70.</Text>
                             <Text style={{ color: '#777', fontSize: 12, marginTop: 4 }}>Rozważ aktywność jutro.</Text>
@@ -2467,7 +2447,7 @@ const styles = StyleSheet.create({
     marginVertical: 40,
   },
   dashboardBox: {
-    backgroundColor: '#fff',
+    backgroundColor: '#2e3f52',
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
@@ -2489,7 +2469,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.93)',
+    backgroundColor: '#ffffff',
     borderRadius: 13,
     borderWidth: 0,
     shadowColor: 'rgba(0,0,0,0.12)',
@@ -2542,7 +2522,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   weatherBox: {
-    backgroundColor: '#fff',
+    backgroundColor: '#2e3f52',
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
@@ -2561,7 +2541,7 @@ const styles = StyleSheet.create({
   detailsHeaderDate: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#d4b96a',
     textTransform: 'capitalize',
   },
   insightBox: {
@@ -2590,7 +2570,7 @@ const styles = StyleSheet.create({
   },
   lastUpdate: {
     fontSize: 11,
-    color: '#999',
+    color: 'rgba(255,255,255,0.45)',
     marginTop: 4,
     fontStyle: 'italic',
   },
