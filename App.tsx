@@ -26,6 +26,9 @@ import WeatherIcon from './src/components/WeatherIcon';
 import TempCurve from './src/components/TempCurve';
 import SectionHeader from './src/components/SectionHeader';
 import UiIcon from './src/components/UiIcon';
+import DayComment from './src/components/DayComment';
+import YourDay from './src/components/YourDay';
+import { WeatherInput } from './src/utils/dayLogic';
 import { Dimensions } from 'react-native';
 import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
 import { NativeModules } from 'react-native';
@@ -360,49 +363,67 @@ interface SkyTheme {
   label: string;
 }
 
-const getSkyTheme = (description: string, hour: number, sunriseH: number = 5, sunsetH: number = 21): SkyTheme => {
+const getSkyTheme = (
+  description: string,
+  hour: number,
+  sunriseH: number = 5,
+  sunsetH: number = 21,
+  tempC: number = 20,
+): SkyTheme => {
   const d = (description || '').toLowerCase();
   const isNight = hour < sunriseH || hour >= sunsetH;
-  const isDawn = !isNight && hour < sunriseH + 2;
-  const isDusk = !isNight && hour >= sunsetH - 2;
+  // Precyzyjne fazy dnia oparte na rzeczywistym wschodzie/zachodzie
+  const isDawn     = !isNight && hour < sunriseH + 2;
+  const isMorning  = !isNight && !isDawn && hour < 11;
+  const isAfternoon = !isNight && hour >= 16 && hour < sunsetH - 1;
+  const isDusk     = !isNight && hour >= sunsetH - 1;
 
   const isStorm = d.includes('burza') || d.includes('storm') || d.includes('thunder') || d.includes('wyładowania');
-  const isRain = !isStorm && (d.includes('deszcz') || d.includes('rain') || d.includes('mżawka') || d.includes('drizzle') || d.includes('opady'));
-  const isSnow = d.includes('śnieg') || d.includes('snow') || d.includes('zamieć');
-  const isFog = d.includes('mgła') || d.includes('fog') || d.includes('mist') || d.includes('zamglenie');
-  const isClear = d.includes('bezchmur') || d.includes('słonecz') || d.includes('pogodnie') || d.includes('clear') || d.includes('sunny') || d.includes('czyste');
+  const isRain  = !isStorm && (d.includes('deszcz') || d.includes('rain') || d.includes('mżawka') || d.includes('drizzle') || d.includes('opady'));
+  const isSnow  = d.includes('śnieg') || d.includes('snow') || d.includes('zamieć');
+  const isFog   = d.includes('mgła') || d.includes('fog') || d.includes('mist') || d.includes('zamglenie');
+  const isClear = d.includes('bezchmur') || d.includes('słonecz') || d.includes('pogodnie') || d.includes('clear') || d.includes('sunny');
   const isCloud = !isClear && (d.includes('chmur') || d.includes('cloud') || d.includes('pochmurn') || d.includes('overcast') || d.includes('zachmurz'));
+  const isHeat  = tempC >= 33;
 
-  // Zjawiska ekstremalne nadpisują porę dnia
-  if (isStorm) return { colors: ['#1f2733', '#3a4654', '#10151c'], accent: '#ffd54f', night: true, label: 'Burza' };
-  if (isSnow) return isNight
-    ? { colors: ['#2c3a4a', '#46596b', '#1e2935'], accent: '#e3f2fd', night: true, label: 'Śnieg' }
-    : { colors: ['#8fa6bd', '#c3d4e3', '#a7bccf'], accent: '#1565c0', night: false, label: 'Śnieg' };
-  if (isRain) return isNight
-    ? { colors: ['#1a2530', '#2b3b4a', '#141c24'], accent: '#64b5f6', night: true, label: 'Deszcz' }
-    : { colors: ['#52677a', '#7c93a6', '#5e7384'], accent: '#bbdefb', night: false, label: 'Deszcz' };
-  if (isFog) return isNight
-    ? { colors: ['#2b333b', '#454f59', '#1f262d'], accent: '#cfd8dc', night: true, label: 'Mgła' }
-    : { colors: ['#9aa7b0', '#c4ced4', '#aeb9c0'], accent: '#546e7a', night: false, label: 'Mgła' };
+  // Ekstremalne zjawiska — nadpisują porę dnia (Design System V2)
+  if (isStorm) return { colors: ['#1a1a2e', '#2d1b4e', '#0d0d1a'], accent: '#fbbf24', night: true,  label: 'Burza' };
+  if (isHeat)  return { colors: ['#c0392b', '#e74c3c', '#8b1a0a'], accent: '#fef9c3', night: false, label: 'Upał' };
+  if (isSnow)  return isNight
+    ? { colors: ['#2c3a4a', '#46596b', '#1e2935'],             accent: '#e3f2fd', night: true,  label: 'Śnieg (noc)' }
+    : { colors: ['#c8d6ff', '#a8bcf0', '#1e3a8a'],             accent: '#1565c0', night: false, label: 'Śnieg' };
+  if (isRain)  return isNight
+    ? { colors: ['#1e3a5e', '#253d5e', '#1a2a3e'],             accent: '#64b5f6', night: true,  label: 'Deszcz (noc)' }
+    : { colors: ['#2d3f52', '#3d5270', '#1e2d3e'],             accent: '#bbdefb', night: false, label: 'Deszcz' };
+  if (isFog)   return isNight
+    ? { colors: ['#2b333b', '#454f59', '#1f262d'],             accent: '#cfd8dc', night: true,  label: 'Mgła (noc)' }
+    : { colors: ['#4a5568', '#6b7280', '#374151'],             accent: '#546e7a', night: false, label: 'Mgła' };
 
-  // Pogodnie / lekkie chmury — pełna gama pory dnia
-  if (isNight) return { colors: ['#0b1a3a', '#1a2f5a', '#060d22'], accent: '#7c4dff', night: true, label: isCloud ? 'Pochmurna noc' : 'Czysta noc' };
-  if (isDawn) return { colors: ['#ff9a76', '#ffd194', '#a1c4fd'], accent: '#e65100', night: false, label: 'Świt' };
-  if (isDusk) return { colors: ['#ff7e5f', '#feb47b', '#6a4d8c'], accent: '#bf360c', night: false, label: 'Zmierzch' };
-  if (isCloud) return { colors: ['#6e8aa6', '#9bb4cc', '#7e98b3'], accent: '#1565c0', night: false, label: 'Pochmurno' };
-  // Słoneczny dzień
-  return { colors: ['#2196f3', '#64b5f6', '#90caf9'], accent: '#0d47a1', night: false, label: 'Słonecznie' };
+  // Pełna gama pory dnia — Design System V2
+  if (isNight)     return { colors: ['#0d1f3c', '#0a1628', '#060e1e'],   accent: '#7c4dff', night: true,  label: isCloud ? 'Pochmurna noc' : 'Noc' };
+  if (isDawn)      return { colors: ['#c9813a', '#b5470f', '#1a1a3a'],   accent: '#e65100', night: false, label: 'Świt' };
+  if (isMorning)   return { colors: ['#1e6fb3', '#1a3a6e', '#0d1f3c'],   accent: '#60b4ff', night: false, label: isCloud ? 'Pochmurny poranek' : 'Poranek' };
+  if (isAfternoon) return { colors: ['#d4720a', '#c9502a', '#1a2a5e'],   accent: '#fbbf24', night: false, label: 'Popołudnie' };
+  if (isDusk)      return { colors: ['#c94b0a', '#8b1a6b', '#1a0a3a'],   accent: '#f472b6', night: false, label: 'Zachód' };
+  if (isCloud)     return { colors: ['#2d3748', '#374151', '#1f2937'],   accent: '#1565c0', night: false, label: 'Pochmurno' };
+  // Słoneczny dzień (11:00–16:00)
+  return           { colors: ['#1e5799', '#207cca', '#2989d8'],          accent: '#1e90ff', night: false, label: 'Słonecznie' };
 };
 
 const parseHourFromTime = (t: string): number => {
   if (!t || t === 'N/A') return -1;
-  const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!m) return -1;
-  let h = parseInt(m[1]);
-  const ampm = m[3].toUpperCase();
-  if (ampm === 'PM' && h !== 12) h += 12;
-  if (ampm === 'AM' && h === 12) h = 0;
-  return h;
+  // Open-Meteo: 24h format "05:24" — primary
+  const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m24) return parseInt(m24[1], 10);
+  // Legacy AM/PM fallback
+  const mAMPM = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (mAMPM) {
+    let h = parseInt(mAMPM[1]);
+    if (mAMPM[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (mAMPM[3].toUpperCase() === 'AM' && h === 12) h = 0;
+    return h;
+  }
+  return -1;
 };
 
 // Tłumaczenie nazw państw zwracanych przez API na polski (u źródła)
@@ -1200,6 +1221,7 @@ export default function App() {
     currentTime.getHours(),
     sunriseH >= 0 ? sunriseH : 5,
     sunsetH >= 0 ? sunsetH : 21,
+    weather?.tempC ?? parseInt(weather?.temp ?? '20'),
   );
 
   return (
@@ -1374,6 +1396,31 @@ export default function App() {
           <ActivityIndicator size="large" color="#fff" style={styles.loader} />
         ) : weather ? (
           <Animated.View style={{ opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
+            {/* V2: Komentarz dnia + Twój dzień */}
+            {(() => {
+              const wi: WeatherInput = {
+                temp: weather.temp,
+                tempC: weather.tempC,
+                description: weather.description,
+                windSpeed: weather.windSpeed,
+                windKmph: weather.windKmph,
+                humidity: weather.humidity,
+                uvIndex: weather.uvIndex,
+                aqi: weather.aqi,
+                pressure: weather.pressure,
+                visibility: weather.visibility,
+                sunrise: weather.sunrise,
+                sunset: weather.sunset,
+                hourly: weather.hourly?.map(h => ({ time: h.time, temp: h.temp, rainChance: h.rainChance })),
+                forecast: weather.forecast?.map(d => ({ maxTemp: d.maxTemp, minTemp: d.minTemp, description: d.description })),
+              };
+              return (
+                <>
+                  <DayComment weather={wi} />
+                </>
+              );
+            })()}
+
             {/* DASHBOARD 5 SEKUND - Wszystko co Paweł potrzebuje w szybkim spojrzeniu */}
             <View style={styles.dashboardBox} ref={weatherCardRef}>
               {(() => {
@@ -1449,6 +1496,27 @@ export default function App() {
                 );
               })()}
             </View>
+
+            {/* V2: Twój dzień */}
+            {(() => {
+              const wi: WeatherInput = {
+                temp: weather.temp,
+                tempC: weather.tempC,
+                description: weather.description,
+                windSpeed: weather.windSpeed,
+                windKmph: weather.windKmph,
+                humidity: weather.humidity,
+                uvIndex: weather.uvIndex,
+                aqi: weather.aqi,
+                pressure: weather.pressure,
+                visibility: weather.visibility,
+                sunrise: weather.sunrise,
+                sunset: weather.sunset,
+                hourly: weather.hourly?.map(h => ({ time: h.time, temp: h.temp, rainChance: h.rainChance })),
+                forecast: weather.forecast?.map(d => ({ maxTemp: d.maxTemp, minTemp: d.minTemp, description: d.description })),
+              };
+              return <YourDay weather={wi} />;
+            })()}
 
             {/* GODZINOWY INDEKS KOMFORTU */}
             {weather.hourly && weather.hourly.length > 0 && (
