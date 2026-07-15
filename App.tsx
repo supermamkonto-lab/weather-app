@@ -1417,6 +1417,7 @@ export default function App() {
               return (
                 <>
                   <DayComment weather={wi} />
+                  <YourDay weather={wi} />
                 </>
               );
             })()}

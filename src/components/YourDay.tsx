@@ -119,16 +119,19 @@ export default function YourDay({ weather }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#2e3f52',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   label: {
     fontSize: 10,
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 14,
   },
