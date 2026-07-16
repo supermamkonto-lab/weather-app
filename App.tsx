@@ -1489,7 +1489,7 @@ export default function App() {
                       </View>
                       <View style={tileStyle(weather.aqiColor === '#4caf50' ? '#14532d' : weather.aqiColor === '#ff9800' ? '#7c2d12' : weather.aqiColor === '#f44336' ? '#7f1d1d' : '#1e3a5f')}>
                         <Text style={labelStyle}>🌫 POWIETRZE</Text>
-                        <Text style={[valueStyle, { fontSize: weather.aqi.length > 7 ? 18 : 24 }]}>{weather.aqi}</Text>
+                        <Text style={[valueStyle, { fontSize: weather.aqi.length > 7 ? 16 : 24 }]} numberOfLines={1} adjustsFontSizeToFit>{weather.aqi}</Text>
                         <Text style={subStyle}>jakość powietrza</Text>
                       </View>
                     </View>
@@ -1497,27 +1497,6 @@ export default function App() {
                 );
               })()}
             </View>
-
-            {/* V2: Twój dzień */}
-            {(() => {
-              const wi: WeatherInput = {
-                temp: weather.temp,
-                tempC: weather.tempC,
-                description: weather.description,
-                windSpeed: weather.windSpeed,
-                windKmph: weather.windKmph,
-                humidity: weather.humidity,
-                uvIndex: weather.uvIndex,
-                aqi: weather.aqi,
-                pressure: weather.pressure,
-                visibility: weather.visibility,
-                sunrise: weather.sunrise,
-                sunset: weather.sunset,
-                hourly: weather.hourly?.map(h => ({ time: h.time, temp: h.temp, rainChance: h.rainChance })),
-                forecast: weather.forecast?.map(d => ({ maxTemp: d.maxTemp, minTemp: d.minTemp, description: d.description })),
-              };
-              return <YourDay weather={wi} />;
-            })()}
 
             {/* GODZINOWY INDEKS KOMFORTU */}
             {weather.hourly && weather.hourly.length > 0 && (

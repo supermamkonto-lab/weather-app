@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.85)',
-    maxWidth: 90,
+    maxWidth: 120,
   },
 
   // Modal / sheet
