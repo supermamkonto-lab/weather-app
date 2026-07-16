@@ -719,6 +719,7 @@ export default function App() {
 
       try {
         // Non-blocking AQI + pyłki fetch - timeout 2 sec (jedno zapytanie)
+        let aqiResponse: any;
         aqiResponse = await Promise.race([
           axios.get(
             `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi,grass_pollen,birch_pollen,alder_pollen,ragweed_pollen,mugwort_pollen,olive_pollen`,
@@ -837,8 +838,8 @@ export default function App() {
         pollen,
         pollenColor,
         lastUpdate,
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lon),
+        latitude: Number(lat),
+        longitude: Number(lon),
         tempC,
         windKmph,
       };
@@ -1012,13 +1013,14 @@ export default function App() {
           return;
         }
       }
+      // @ts-ignore - React Native exposes navigator.geolocation as a polyfill
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
+        async (pos: { coords: { latitude: number; longitude: number } }) => {
           const { latitude, longitude } = pos.coords;
           await fetchWeather(`${latitude},${longitude}`);
           setGpsLoading(false);
         },
-        (err) => {
+        (err: { message: string }) => {
           Alert.alert('GPS', 'Nie można pobrać lokalizacji: ' + err.message);
           setGpsLoading(false);
         },
