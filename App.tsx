@@ -28,6 +28,7 @@ import SectionHeader from './src/components/SectionHeader';
 import UiIcon from './src/components/UiIcon';
 import DayComment from './src/components/DayComment';
 import YourDay from './src/components/YourDay';
+import WeatherParticles from './src/components/WeatherParticles';
 import { WeatherInput } from './src/utils/dayLogic';
 import { Dimensions } from 'react-native';
 import { setupNotifee, sendAQIAlert, sendStormAlert, scheduleDailyReport } from './src/services/notificationService';
@@ -1360,6 +1361,8 @@ export default function App() {
         {/* HERO — sygnatura wizualna (Apple Weather class) */}
         {weather && !loading && (
           <Animated.View style={[styles.hero, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
+            {/* Animated weather particles — rain/snow overlay */}
+            <WeatherParticles description={weather.description} />
             <Text style={styles.heroLocation} numberOfLines={1}>
               {weather.location
                 .replace(/^Warsaw,/, 'Warszawa,').replace(/^Wawel,/, 'Kraków,').replace(/^Krakow,/, 'Kraków,')
@@ -1666,10 +1669,34 @@ export default function App() {
                         activeOpacity={0.72}
                       >
                         <Text style={{ fontSize: 10, fontWeight: '800', color: isHighlighted ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.55)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{dayName}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }}>
                           <Text style={{ fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>{day.maxTemp.replace('°C', '°')}</Text>
                           <Text style={{ fontSize: 15, fontWeight: '500', color: 'rgba(255,255,255,0.45)', marginLeft: 5 }}>{day.minTemp.replace('°C', '°')}</Text>
                         </View>
+                        {/* Temperature range bar */}
+                        {(() => {
+                          const allMax = weather.forecast.map((d: any) => parseInt(d.maxTemp) || 0);
+                          const allMin = weather.forecast.map((d: any) => parseInt(d.minTemp) || 0);
+                          const globalMin = Math.min(...allMin);
+                          const globalMax = Math.max(...allMax);
+                          const span = globalMax - globalMin || 1;
+                          const leftPct = ((minN - globalMin) / span) * 100;
+                          const widthPct = ((maxN - minN) / span) * 100;
+                          const warmth = maxN >= 28 ? '#f97316' : maxN >= 22 ? '#fbbf24' : maxN >= 15 ? '#34d399' : '#60a5fa';
+                          return (
+                            <View style={{ height: 5, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' }}>
+                              <View style={{
+                                position: 'absolute',
+                                left: `${leftPct}%` as any,
+                                width: `${Math.max(widthPct, 8)}%` as any,
+                                height: 5,
+                                backgroundColor: warmth,
+                                borderRadius: 3,
+                                opacity: 0.85,
+                              }} />
+                            </View>
+                          );
+                        })()}
                         <WeatherIcon desc={day.description} size={28} />
                         <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 6, lineHeight: 15 }} numberOfLines={2}>{day.description}</Text>
                       </TouchableOpacity>
