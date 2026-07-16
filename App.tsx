@@ -1781,7 +1781,7 @@ export default function App() {
                   const pm25N = parseFloat(weather.pm25) || 0;
                   const pm10N = parseFloat(weather.pm10) || 0;
 
-                  const silverCard: any = { width: '48%', backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' };
+                  const silverCard: any = { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderLeftWidth: 3 };
 
                   const items: Array<{ emoji: string; label: string; value: string; context: string; body: string; color: string }> = [
                     {
@@ -1847,7 +1847,7 @@ export default function App() {
                   ];
 
                   return items.map((item, i) => (
-                    <TouchableOpacity key={i} style={silverCard} onPress={() => { haptic(); setDetailTile({ title: item.label, value: item.value, body: item.body, color: item.color }); }} activeOpacity={0.72}>
+                    <TouchableOpacity key={i} style={[silverCard, { borderLeftColor: item.color }]} onPress={() => { haptic(); setDetailTile({ title: item.label, value: item.value, body: item.body, color: item.color }); }} activeOpacity={0.72}>
                       <Text style={{ fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>{item.emoji} {item.label}</Text>
                       <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 }} numberOfLines={2}>{item.value}</Text>
                       {item.context ? <Text style={{ fontSize: 11, color: item.color, fontWeight: '600' }}>{item.context}</Text> : <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>dotknij →</Text>}
@@ -1856,7 +1856,7 @@ export default function App() {
                 })()}
 
                 <TouchableOpacity
-                  style={{ width: '48%', backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
+                  style={{ width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderLeftWidth: 3, borderLeftColor: weather.aqiColor }}
                   onPress={() => setShowAQIModal(true)}
                   activeOpacity={0.72}
                 >
@@ -2904,15 +2904,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   weatherBox: {
-    backgroundColor: '#2e3f52',
-    borderRadius: 20,
+    backgroundColor: 'rgba(8,20,42,0.88)',
+    borderRadius: 24,
     padding: 16,
     marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
   },
   detailsHeaderRow: {
     flexDirection: 'row',
