@@ -1600,7 +1600,7 @@ export default function App() {
 
             {/* GODZINOWY INDEKS KOMFORTU */}
             {weather.hourly && weather.hourly.length > 0 && (
-              <View style={{ backgroundColor: '#2e3f52', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 }}>
+              <View style={{ backgroundColor: 'rgba(8,20,42,0.88)', borderRadius: 24, marginBottom: 12, padding: 16, elevation: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16 }}>
                 <SectionHeader
                   title="Dziś godzinowo"
                   accent={theme.accent}
@@ -1679,7 +1679,7 @@ export default function App() {
 
             {/* PROGNOZA 5-DNIOWA — grid 2 kolumny (premium) */}
             {weather.forecast && weather.forecast.length > 0 && (
-              <View style={{ backgroundColor: '#2e3f52', borderRadius: 20, marginBottom: 12, padding: 16, elevation: 5, shadowColor: '#0d1f33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 }}>
+              <View style={{ backgroundColor: 'rgba(8,20,42,0.88)', borderRadius: 24, marginBottom: 12, padding: 16, elevation: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16 }}>
                 <SectionHeader
                   title="Najbliższe dni"
                   accent={theme.accent}
@@ -2829,15 +2829,17 @@ const styles = StyleSheet.create({
     marginVertical: 40,
   },
   dashboardBox: {
-    backgroundColor: '#2e3f52',
-    borderRadius: 20,
+    backgroundColor: 'rgba(8,20,42,0.88)',
+    borderRadius: 24,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   dashboardGrid: {
     flexDirection: 'row',
