@@ -1249,102 +1249,140 @@ export default function App() {
         end={{ x: 0, y: 1 }}
       />
 
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Pogoda</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => { haptic(); setShowSearch(!showSearch); }}
-          >
-            <Text style={styles.menuButtonText}>≡</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.menuButton} onPress={() => { haptic(); setShowSearch(true); }} activeOpacity={0.75}>
+          <Text style={styles.menuButtonText}>≡</Text>
+        </TouchableOpacity>
       </View>
 
-      {showSearch && (
-        <View>
-        <View style={styles.searchBox}>
-          <TextInput
-            style={styles.input}
-            placeholder="Wpisz miasto..."
-            placeholderTextColor="#999"
-            value={city}
-            onChangeText={setCity}
-            onSubmitEditing={() => {
-              fetchWeather();
-              setShowSearch(false);
-            }}
-          />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => {
-              fetchWeather();
-              setShowSearch(false);
-            }}
-            disabled={loading}
-          >
-            <Text style={[styles.buttonText, { fontSize: 14, fontWeight: '700', color: '#fff' }]}>Szukaj</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'transparent' }}>
-          {weather && (
-            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowForecastModal(true); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>Prognoza 7 dni</Text>
-            </TouchableOpacity>
-          )}
-          {weather && (
-            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowICMInterpretation(false); setShowICMModal(true); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>Meteogram ICM</Text>
-            </TouchableOpacity>
-          )}
-          {weather && (
-            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowSportModal(true); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>Sport / Rower</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowHistory(true); setShowSearch(false); }}>
-            <Text style={styles.menuActionText}>Historia</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuActionBtn} onPress={() => { setShowComparison(true); setShowSearch(false); fetchComparisonData(); }}>
-            <Text style={styles.menuActionText}>Porównaj miasta</Text>
-          </TouchableOpacity>
-          {weather && (
-            <TouchableOpacity style={styles.menuActionBtn} onPress={() => { shareWeather(); setShowSearch(false); }}>
-              <Text style={styles.menuActionText}>Udostępnij</Text>
-            </TouchableOpacity>
-          )}
-          {favorites.length > 0 && (
-            <View style={{ width: '100%', marginTop: 4 }}>
-              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1, marginBottom: 6, marginLeft: 2 }}>ULUBIONE MIASTA</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {favorites.map((fav, idx) => (
-                  <TouchableOpacity key={idx} style={[styles.menuActionBtn, city === fav && { borderColor: '#60b4ff' }]} onPress={() => { haptic(); fetchWeather(fav); setShowSearch(false); }}>
-                    <Text style={[styles.menuActionText, city === fav && { color: '#60b4ff' }]}>{fav}</Text>
+      {/* PREMIUM MENU DRAWER */}
+      <Modal visible={showSearch} transparent animationType="slide" onRequestClose={() => setShowSearch(false)}>
+        <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setShowSearch(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={styles.menuDrawer}>
+              {/* Handle */}
+              <View style={styles.menuHandle} />
+
+              {/* Location header */}
+              {weather && (
+                <View style={styles.menuLocationRow}>
+                  <Text style={styles.menuLocationCity} numberOfLines={1}>
+                    {weather.location.replace(', Poland', ', Polska').replace(/^Warsaw,/, 'Warszawa,').replace(/^Krakow,/, 'Kraków,')}
+                  </Text>
+                  <Text style={styles.menuLocationTemp}>{weather.temp.replace('°C', '°')}</Text>
+                </View>
+              )}
+
+              {/* Search */}
+              <View style={styles.menuSearchRow}>
+                <Text style={styles.menuSearchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.menuSearchInput}
+                  placeholder="Wpisz miasto..."
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  value={city}
+                  onChangeText={setCity}
+                  onSubmitEditing={() => { fetchWeather(); setShowSearch(false); }}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity style={styles.menuSearchBtn} onPress={() => { fetchWeather(); setShowSearch(false); }} disabled={loading}>
+                  <Text style={styles.menuSearchBtnText}>Szukaj</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Section: Nawigacja */}
+              <Text style={styles.menuSectionLabel}>NAWIGACJA</Text>
+              <View style={styles.menuNavList}>
+                {weather && (
+                  <TouchableOpacity style={styles.menuNavItem} onPress={() => { setShowForecastModal(true); setShowSearch(false); }} activeOpacity={0.7}>
+                    <Text style={styles.menuNavIcon}>📅</Text>
+                    <Text style={styles.menuNavLabel}>Prognoza 7 dni</Text>
+                    <Text style={styles.menuNavChevron}>›</Text>
                   </TouchableOpacity>
-                ))}
+                )}
+                {weather && (
+                  <TouchableOpacity style={styles.menuNavItem} onPress={() => { setShowICMInterpretation(false); setShowICMModal(true); setShowSearch(false); }} activeOpacity={0.7}>
+                    <Text style={styles.menuNavIcon}>🌡️</Text>
+                    <Text style={styles.menuNavLabel}>Meteogram ICM</Text>
+                    <Text style={styles.menuNavChevron}>›</Text>
+                  </TouchableOpacity>
+                )}
+                {weather && (
+                  <TouchableOpacity style={styles.menuNavItem} onPress={() => { setShowSportModal(true); setShowSearch(false); }} activeOpacity={0.7}>
+                    <Text style={styles.menuNavIcon}>🚴</Text>
+                    <Text style={styles.menuNavLabel}>Sport / Rower</Text>
+                    <Text style={styles.menuNavChevron}>›</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.menuNavItem} onPress={() => { setShowHistory(true); setShowSearch(false); }} activeOpacity={0.7}>
+                  <Text style={styles.menuNavIcon}>📜</Text>
+                  <Text style={styles.menuNavLabel}>Historia wyszukiwań</Text>
+                  <Text style={styles.menuNavChevron}>›</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuNavItem} onPress={() => { setShowComparison(true); setShowSearch(false); fetchComparisonData(); }} activeOpacity={0.7}>
+                  <Text style={styles.menuNavIcon}>🏙️</Text>
+                  <Text style={styles.menuNavLabel}>Porównaj miasta</Text>
+                  <Text style={styles.menuNavChevron}>›</Text>
+                </TouchableOpacity>
+                {weather && (
+                  <TouchableOpacity style={[styles.menuNavItem, { borderBottomWidth: 0 }]} onPress={() => { shareWeather(); setShowSearch(false); }} activeOpacity={0.7}>
+                    <Text style={styles.menuNavIcon}>📤</Text>
+                    <Text style={styles.menuNavLabel}>Udostępnij pogodę</Text>
+                    <Text style={styles.menuNavChevron}>›</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Section: Ulubione */}
+              {favorites.length > 0 && (
+                <>
+                  <Text style={styles.menuSectionLabel}>ULUBIONE MIASTA</Text>
+                  <View style={styles.menuFavRow}>
+                    {favorites.map((fav, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[styles.menuFavChip, city === fav && styles.menuFavChipActive]}
+                        onPress={() => { haptic(); fetchWeather(fav); setShowSearch(false); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.menuFavChipText, city === fav && styles.menuFavChipTextActive]}>📍 {fav}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {/* Footer: notifications + version */}
+              <View style={styles.menuFooter}>
+                <TouchableOpacity
+                  style={styles.menuNotifRow}
+                  onPress={async () => {
+                    if (notificationsEnabled) {
+                      const { cancelDailyReport } = require('./src/services/notificationService');
+                      await cancelDailyReport();
+                      setNotificationsEnabled(false);
+                    } else {
+                      const ok = await setupNotifee();
+                      if (ok) { await scheduleDailyReport(7); setNotificationsEnabled(true); }
+                    }
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.menuNotifIcon}>🔔</Text>
+                  <Text style={styles.menuNotifLabel}>Powiadomienia dzienne</Text>
+                  <View style={[styles.menuNotifToggle, notificationsEnabled && styles.menuNotifToggleOn]}>
+                    <Text style={styles.menuNotifToggleText}>{notificationsEnabled ? 'WŁ' : 'WYŁ'}</Text>
+                  </View>
+                </TouchableOpacity>
+                <Text style={styles.menuVersion}>WeatherApp · v2-alpha · 2026-07-16</Text>
               </View>
             </View>
-          )}
-          <TouchableOpacity
-            style={[styles.menuActionBtn, { borderColor: notificationsEnabled ? '#4caf50' : 'rgba(255,255,255,0.5)' }]}
-            onPress={async () => {
-              if (notificationsEnabled) {
-                const { cancelDailyReport } = require('./src/services/notificationService');
-                await cancelDailyReport();
-                setNotificationsEnabled(false);
-              } else {
-                const ok = await setupNotifee();
-                if (ok) { await scheduleDailyReport(7); setNotificationsEnabled(true); }
-              }
-            }}
-          >
-            <Text style={[styles.menuActionText, { color: notificationsEnabled ? '#4caf50' : '#0d47a1' }]}>
-              {notificationsEnabled ? 'Alerty: WŁ' : 'Alerty: WYŁ'}
-            </Text>
           </TouchableOpacity>
-        </View>
-        </View>
-      )}
+        </TouchableOpacity>
+      </Modal>
 
       <ScrollView
         style={styles.content}
@@ -2498,41 +2536,219 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   menuButton: {
-    padding: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.38)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuButtonText: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+
+  // ── Premium drawer ────────────────────────────────────────
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  menuDrawer: {
+    backgroundColor: '#0b1929',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 48,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  menuHandle: {
+    width: 42,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  menuLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  menuLocationCity: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    flex: 1,
+  },
+  menuLocationTemp: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -1,
+  },
+  menuSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginBottom: 22,
+    gap: 8,
+  },
+  menuSearchIcon: {
+    fontSize: 16,
+  },
+  menuSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#fff',
+    paddingVertical: 10,
+    fontWeight: '500',
+  },
+  menuSearchBtn: {
+    backgroundColor: '#1e90ff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  menuSearchBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  menuSectionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.35)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+  menuNavList: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  menuNavItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    gap: 14,
+  },
+  menuNavIcon: {
+    fontSize: 18,
+    width: 26,
+    textAlign: 'center',
+  },
+  menuNavLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.88)',
+  },
+  menuNavChevron: {
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.3)',
+    fontWeight: '300',
+    lineHeight: 26,
+  },
+  menuFavRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 22,
+  },
+  menuFavChip: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  menuFavChipActive: {
+    backgroundColor: 'rgba(30,144,255,0.22)',
+    borderColor: 'rgba(30,144,255,0.55)',
+  },
+  menuFavChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
+  },
+  menuFavChipTextActive: {
+    color: '#60b4ff',
+  },
+  menuFooter: {
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingTop: 16,
+  },
+  menuNotifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 14,
+  },
+  menuNotifIcon: {
+    fontSize: 18,
+    width: 26,
+    textAlign: 'center',
+  },
+  menuNotifLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.88)',
+  },
+  menuNotifToggle: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  menuNotifToggleOn: {
+    backgroundColor: 'rgba(34,197,94,0.25)',
+    borderColor: 'rgba(34,197,94,0.55)',
+  },
+  menuNotifToggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  menuVersion: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.25)',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   content: {
     padding: 12,
     paddingBottom: 32,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    marginBottom: 24, // Increased spacing for tall screen
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  button: {
-    width: 50,
-    borderRadius: 8,
-    backgroundColor: '#1e90ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 20,
   },
   favoritesTitle: {
     fontSize: 11,
@@ -2574,19 +2790,6 @@ const styles = StyleSheet.create({
   },
   favoriteChipTextActive: {
     color: '#0d47a1',
-  },
-  menuActionBtn: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  menuActionText: {
-    fontSize: 13,
-    color: '#0d47a1',
-    fontWeight: '700',
   },
   error: {
     color: '#fff',
