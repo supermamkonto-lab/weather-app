@@ -28,6 +28,7 @@ import SectionHeader from './src/components/SectionHeader';
 import UiIcon from './src/components/UiIcon';
 import DayComment from './src/components/DayComment';
 import YourDay from './src/components/YourDay';
+import WhatToWear from './src/components/WhatToWear';
 import WeatherParticles from './src/components/WeatherParticles';
 import { WeatherInput } from './src/utils/dayLogic';
 import { Dimensions } from 'react-native';
@@ -1478,6 +1479,7 @@ export default function App() {
                 <>
                   <DayComment weather={wi} />
                   <YourDay weather={wi} />
+                  <WhatToWear weather={wi} />
                 </>
               );
             })()}
