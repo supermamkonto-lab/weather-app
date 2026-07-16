@@ -180,7 +180,10 @@ export default function WeatherParticles({ description }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: HERO_H,
     overflow: 'hidden',
   },
