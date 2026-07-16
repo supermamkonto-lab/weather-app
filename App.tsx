@@ -489,6 +489,7 @@ export default function App() {
   const [showSportModal, setShowSportModal] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const weatherCardRef = React.useRef<View>(null);
+  const hourlyScrollRef = React.useRef<ScrollView>(null);
   const contentAnim = React.useRef(new Animated.Value(0)).current;
   const haptic = () => { try { Vibration.vibrate(8); } catch {} };
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -509,6 +510,18 @@ export default function App() {
       }).start();
     }
   }, [weather?.location, weather?.lastUpdate, loading]);
+
+  // Auto-scroll godzinowy do bieżącej godziny
+  useEffect(() => {
+    if (weather?.hourly && hourlyScrollRef.current) {
+      const nowH = new Date().getHours();
+      const idx = weather.hourly.findIndex(h => parseInt(h.time.split(':')[0]) >= nowH);
+      const scrollIdx = Math.max(0, idx - 1);
+      setTimeout(() => {
+        hourlyScrollRef.current?.scrollTo({ x: scrollIdx * 68, animated: false });
+      }, 400);
+    }
+  }, [weather?.lastUpdate]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -1371,6 +1384,50 @@ export default function App() {
               <View style={[styles.heroBadgeDot, { backgroundColor: weather.aqiColor }]} />
               <Text style={styles.heroBadgeText}>Powietrze: {weather.aqi}</Text>
             </View>
+
+            {/* SUN ARC — pozycja słońca */}
+            {(() => {
+              const srH = parseHourFromTime(weather.sunrise);
+              const ssH = parseHourFromTime(weather.sunset);
+              const now = new Date().getHours() + new Date().getMinutes() / 60;
+              const progress = srH >= 0 && ssH > srH
+                ? Math.max(0, Math.min(1, (now - srH) / (ssH - srH)))
+                : 0.5;
+              const isDay = srH >= 0 && ssH > srH && now >= srH && now < ssH;
+              return (
+                <View style={{ paddingHorizontal: 8, marginTop: 18, width: '100%' }}>
+                  <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative' }}>
+                    <View style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      width: `${progress * 100}%` as any,
+                      height: 3,
+                      backgroundColor: isDay ? 'rgba(251,191,36,0.6)' : 'rgba(148,163,184,0.4)',
+                      borderRadius: 2,
+                    }} />
+                    <View style={{
+                      position: 'absolute',
+                      left: `${progress * 100}%` as any,
+                      top: -5,
+                      width: 13, height: 13,
+                      backgroundColor: isDay ? '#fbbf24' : '#94a3b8',
+                      borderRadius: 7,
+                      shadowColor: isDay ? '#fbbf24' : '#94a3b8',
+                      shadowOpacity: 0.9,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 6,
+                      marginLeft: -6,
+                    }} />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>🌅 {weather.sunrise}</Text>
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>🌇 {weather.sunset}</Text>
+                  </View>
+                </View>
+              );
+            })()}
           </Animated.View>
         )}
 
@@ -1432,7 +1489,7 @@ export default function App() {
                 const rainText = desc.includes('deszcz') || desc.includes('rain') ? 'opady' :
                   desc.includes('burza') || desc.includes('storm') ? 'burza' :
                   desc.includes('śnieg') || desc.includes('snow') ? 'śnieg' :
-                  desc.includes('mżawka') ? 'mżawka' : 'bez opadów';
+                  desc.includes('mżawka') ? 'mżawka' : 'czysto';
                 const windLabel = windNum < 10 ? 'cicho' : windNum < 20 ? 'umiarkowany' : windNum < 35 ? 'silny' : 'bardzo silny';
                 const humLabel = humNum < 40 ? 'suche' : humNum < 65 ? 'optymalne' : humNum < 80 ? 'wilgotne' : 'bardzo wilgotne';
                 const rainIcon = desc.includes('deszcz') || desc.includes('rain') ? '🌧' :
@@ -1513,7 +1570,17 @@ export default function App() {
                 />
 
                 {/* Krzywa temperatury + kafelki - oba w JEDNYM ScrollView aby się przesuwały razem */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView
+                  ref={hourlyScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  onContentSizeChange={() => {
+                    const nowH = new Date().getHours();
+                    const idx = weather.hourly.findIndex((h: any) => parseInt(h.time.split(':')[0]) >= nowH);
+                    const scrollIdx = Math.max(0, idx - 1);
+                    hourlyScrollRef.current?.scrollTo({ x: scrollIdx * 68, animated: false });
+                  }}
+                >
                   {/* SLOT = stały rozstaw godziny (pitch). Kontener, krzywa i kafle liczone z tego samego SLOT,
                       dzięki czemu nic się nie ucina (cała doba scrollowalna) a krzywa trafia nad środek kafla. */}
                   <View style={{ width: weather.hourly.length * 68 + 16, paddingRight: 16 }}>

@@ -1,9 +1,9 @@
-// WeatherApp V2 — "Twój dzień" section component
-// Star rating + 8 activity chips with tap-to-see-reason bottom sheet.
+// WeatherApp V2 — "Twój dzień" — PREMIUM redesign
+// Dark frosted glass + 2-column activity grid + green/red chips + golden star glow
 
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView,
+  View, Text, TouchableOpacity, Modal, StyleSheet,
 } from 'react-native';
 import { rateDayScore, evaluateActivities, WeatherInput, ActivityResult } from '../utils/dayLogic';
 import { pl } from '../i18n/pl';
@@ -18,55 +18,57 @@ export default function YourDay({ weather }: Props) {
   const [selected, setSelected] = useState<ActivityResult | null>(null);
   const [showFactors, setShowFactors] = useState(false);
 
+  // Split activities into 2 columns
+  const col1 = activities.filter((_, i) => i % 2 === 0);
+  const col2 = activities.filter((_, i) => i % 2 === 1);
+
+  // Star color based on rating
+  const starColor = stars >= 4 ? '#fbbf24' : stars === 3 ? '#fb923c' : '#f87171';
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <Text style={styles.label}>{pl.yourDay.sectionLabel}</Text>
 
-      {/* Star rating row */}
-      <TouchableOpacity
-        style={styles.ratingRow}
-        onPress={() => setShowFactors(true)}
-        activeOpacity={0.75}
-      >
-        <View style={styles.starsRow}>
-          {Array.from({ length: 5 }, (_, i) => (
-            <Text key={i} style={[styles.star, i < stars ? styles.starOn : styles.starOff]}>
-              ★
-            </Text>
-          ))}
-        </View>
-        <View style={styles.ratingTextCol}>
+      {/* Rating row — tappable */}
+      <TouchableOpacity style={styles.ratingCard} onPress={() => setShowFactors(true)} activeOpacity={0.8}>
+        <View>
+          <Text style={styles.ratingTopLabel}>{pl.yourDay.sectionLabel}</Text>
+          <View style={styles.starsRow}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <Text
+                key={i}
+                style={[styles.star, { color: i < stars ? starColor : 'rgba(255,255,255,0.18)' }]}
+              >
+                ★
+              </Text>
+            ))}
+          </View>
           <Text style={styles.ratingLabel}>{label}</Text>
-          <Text style={styles.ratingHint}>{pl.yourDay.whyLabel(stars)}</Text>
+        </View>
+        <View style={styles.whyPill}>
+          <Text style={styles.whyPillText}>Dlaczego? →</Text>
         </View>
       </TouchableOpacity>
 
-      {/* Activities */}
+      {/* Activities — 2-column grid */}
       <Text style={styles.activitiesLabel}>{pl.yourDay.activitiesLabel}</Text>
-      <Text style={styles.tapHint}>{pl.yourDay.tapHint}</Text>
-      <View style={styles.activitiesGrid}>
-        {activities.map(act => (
-          <TouchableOpacity
-            key={act.id}
-            style={[styles.actChip, act.ok ? styles.chipOk : styles.chipNo]}
-            onPress={() => setSelected(act)}
-            activeOpacity={0.72}
-          >
-            <Text style={styles.chipMark}>{act.ok ? pl.yourDay.ok : pl.yourDay.notOk}</Text>
-            <Text style={styles.chipLabel} numberOfLines={1}>{act.label}</Text>
-          </TouchableOpacity>
-        ))}
+
+      <View style={styles.actGrid}>
+        <View style={styles.actCol}>
+          {col1.map(act => (
+            <ActivityChip key={act.id} act={act} onPress={() => setSelected(act)} />
+          ))}
+        </View>
+        <View style={styles.actCol}>
+          {col2.map(act => (
+            <ActivityChip key={act.id} act={act} onPress={() => setSelected(act)} />
+          ))}
+        </View>
       </View>
 
-      {/* Activity detail modal */}
+      {/* Activity detail bottom sheet */}
       {selected && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-          <TouchableOpacity
-            style={styles.modalBg}
-            activeOpacity={1}
-            onPress={() => setSelected(null)}
-          >
+          <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setSelected(null)}>
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
               <View style={styles.sheet}>
                 <View style={styles.handle} />
@@ -86,23 +88,22 @@ export default function YourDay({ weather }: Props) {
         </Modal>
       )}
 
-      {/* Factors detail modal */}
+      {/* Factors bottom sheet */}
       {showFactors && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setShowFactors(false)}>
-          <TouchableOpacity
-            style={styles.modalBg}
-            activeOpacity={1}
-            onPress={() => setShowFactors(false)}
-          >
+          <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowFactors(false)}>
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
               <View style={styles.sheet}>
                 <View style={styles.handle} />
-                <Text style={styles.sheetTitle}>
-                  {pl.yourDay.whyLabel(stars)}
-                </Text>
-                <View style={{ marginTop: 16 }}>
+                <Text style={styles.sheetTitle}>Ocena dnia — czynniki</Text>
+                <View style={{ marginTop: 16, gap: 8 }}>
                   {factors.map((f, i) => (
-                    <Text key={i} style={styles.factorRow}>{f}</Text>
+                    <View key={i} style={styles.factorRow}>
+                      <Text style={[
+                        styles.factorText,
+                        f.includes('✔') ? { color: '#34d399' } : f.includes('✗') ? { color: '#f87171' } : { color: '#fbbf24' }
+                      ]}>{f}</Text>
+                    </View>
                   ))}
                 </View>
                 <TouchableOpacity style={styles.closeBtn} onPress={() => setShowFactors(false)}>
@@ -117,139 +118,159 @@ export default function YourDay({ weather }: Props) {
   );
 }
 
+function ActivityChip({ act, onPress }: { act: ActivityResult; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.chip, act.ok ? styles.chipOk : styles.chipNo]}
+      onPress={onPress}
+      activeOpacity={0.72}
+    >
+      <Text style={[styles.chipMark, act.ok ? styles.markOk : styles.markNo]}>
+        {act.ok ? '✔' : '✗'}
+      </Text>
+      <Text style={styles.chipLabel} numberOfLines={1}>{act.label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255,255,255,0.09)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(8, 20, 42, 0.82)',
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-  label: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 14,
-  },
-  ratingRow: {
+
+  // Rating card
+  ratingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 14,
     padding: 14,
-    gap: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  ratingTopLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   starsRow: {
     flexDirection: 'row',
-    gap: 3,
-  },
-  star: {
-    fontSize: 28,
-  },
-  starOn: {
-    color: '#fbbf24',
-  },
-  starOff: {
-    color: 'rgba(255,255,255,0.18)',
-  },
-  ratingTextCol: {
-    flex: 1,
-  },
-  ratingLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 3,
-  },
-  ratingHint: {
-    fontSize: 12,
-    color: '#1E90FF',
-    fontWeight: '600',
-  },
-  activitiesLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
+    gap: 2,
     marginBottom: 4,
   },
-  tapHint: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
-    marginBottom: 12,
+  star: {
+    fontSize: 30,
   },
-  activitiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  ratingLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
-  actChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  whyPill: {
+    backgroundColor: 'rgba(30,144,255,0.2)',
     borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(30,144,255,0.4)',
+  },
+  whyPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#60b4ff',
+  },
+
+  // Activities
+  activitiesLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  actGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actCol: {
+    flex: 1,
+    gap: 7,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
     gap: 6,
+    borderWidth: 1.5,
   },
   chipOk: {
-    backgroundColor: 'rgba(52,211,153,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.35)',
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderColor: 'rgba(34,197,94,0.4)',
   },
   chipNo: {
-    backgroundColor: 'rgba(248,113,113,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.3)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderColor: 'rgba(239,68,68,0.4)',
   },
   chipMark: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#fff',
   },
   chipLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
-    maxWidth: 120,
+    color: 'rgba(255,255,255,0.9)',
+    flex: 1,
   },
+  markOk: { color: '#34d399' },
+  markNo: { color: '#f87171' },
 
-  // Modal / sheet
+  // Modal
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#1a2b3c',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#0d1f35',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 24,
-    paddingBottom: 44,
+    paddingBottom: 48,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
+    gap: 14,
+    marginBottom: 16,
   },
   sheetMark: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
   },
-  markOk: { color: '#34d399' },
-  markNo: { color: '#f87171' },
   sheetTitle: {
     fontSize: 20,
     fontWeight: '800',
@@ -258,21 +279,28 @@ const styles = StyleSheet.create({
   },
   sheetReason: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 23,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 24,
   },
   factorRow: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  factorText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 26,
-    fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+    lineHeight: 20,
   },
   closeBtn: {
     marginTop: 24,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14,
-    padding: 14,
+    padding: 15,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   closeBtnText: {
     fontSize: 15,
